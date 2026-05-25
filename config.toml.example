@@ -1,0 +1,37 @@
+# Dexalot Trade Kit configuration
+# Copy to ~/.dexalot/config.toml and fill in your wallet private key(s).
+#
+# Or run the interactive wizard:
+#   dexalot config init
+
+# Which profile to use when --profile is not specified.
+default_profile = "live"
+
+# ── Mainnet profile (production) ────────────────────────────────────────────
+[profiles.live]
+private_key = "0x_replace_me_with_a_32_byte_hex"
+network     = "mainnet"
+
+# ── Testnet profile (Fuji subnet) ───────────────────────────────────────────
+[profiles.test]
+private_key = "0x_replace_me_with_a_separate_testnet_key"
+network     = "testnet"
+
+# ── Devnet profile (internal) ───────────────────────────────────────────────
+[profiles.dev]
+private_key = "0x_replace_me_with_a_devnet_key"
+network     = "devnet"
+# api_base_url and parent_env are auto-derived for devnet,
+# but you can override here if Dexalot points you at custom endpoints:
+# api_base_url = "https://api.dexalot-dev.com/api"
+# parent_env   = "fuji-multi-avax"
+
+# ── Optional advanced fields (any profile) ──────────────────────────────────
+# timeout_ms = 15000                 # HTTP timeout
+# timestamped_auth = false           # use "dexalot{ts}" signature (backend-gated)
+# proxy_url = "http://127.0.0.1:7890"
+#
+# Per-chain RPC failover lists:
+# [profiles.live.rpc]
+# 43114 = ["https://api.avax.network/ext/bc/C/rpc", "https://avalanche-c-chain.publicnode.com"]
+# 1     = ["https://eth.llamarpc.com"]

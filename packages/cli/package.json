@@ -1,0 +1,46 @@
+{
+  "name": "@dexalot-trade-kit/cli",
+  "version": "0.1.0",
+  "description": "Dexalot CLI — terminal interface for the Dexalot DEX",
+  "type": "module",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "bin": {
+    "dexalot": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "test:unit": "node --import tsx/esm --test test/*.test.ts",
+    "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node --import tsx/esm --test test/*.test.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "dexalot",
+    "cli",
+    "trading",
+    "dex"
+  ],
+  "dependencies": {
+    "ethers": "^6.16.0",
+    "undici": "^6.0.0"
+  },
+  "devDependencies": {
+    "@dexalot-trade-kit/core": "workspace:*",
+    "@types/node": "^25.2.2",
+    "c8": "^10.1.3",
+    "tsup": "^8.5.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.9.3"
+  }
+}

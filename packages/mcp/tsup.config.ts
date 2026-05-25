@@ -1,0 +1,18 @@
+import { defineConfig } from "tsup";
+import { execSync } from "node:child_process";
+
+const gitHash = execSync("git rev-parse --short HEAD", { encoding: "utf-8" }).trim();
+
+export default defineConfig({
+  entry: ["src/index.ts"],
+  format: ["esm"],
+  platform: "node",
+  target: "node18",
+  sourcemap: true,
+  clean: true,
+  dts: true,
+  noExternal: ["@dexalot-trade-kit/core", "smol-toml"],
+  external: ["undici", "yauzl", "ethers", "@dexalot/dexalot-sdk"],
+  banner: { js: "#!/usr/bin/env node" },
+  define: { __GIT_HASH__: JSON.stringify(gitHash) },
+});

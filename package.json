@@ -1,0 +1,31 @@
+{
+  "name": "dexalot-trade-kit",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm --filter @dexalot-trade-kit/core build && pnpm --filter @dexalot-trade-kit/mcp build && pnpm --filter @dexalot-trade-kit/cli build",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r clean",
+    "test:unit": "pnpm --filter @dexalot-trade-kit/core test:unit && pnpm --filter @dexalot-trade-kit/cli test:unit && pnpm --filter @dexalot-trade-kit/mcp test:unit",
+    "test:coverage": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts packages/mcp/test/*.test.ts",
+    "test": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts packages/mcp/test/*.test.ts",
+    "pretest": "pnpm --filter @dexalot-trade-kit/core build && pnpm --filter @dexalot-trade-kit/cli build"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=9"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@types/node": "^25.2.2",
+    "c8": "^10.1.3",
+    "ethers": "^6.16.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.9.3"
+  }
+}
