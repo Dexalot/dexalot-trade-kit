@@ -6,8 +6,8 @@
     "name": "Dexalot",
     "url": "https://dexalot.com"
   },
-  "homepage": "https://github.com/Dexalot/dexalot-trade-kit",
-  "repository": "https://github.com/Dexalot/dexalot-trade-kit",
+  "homepage": "https://github.com/dexalot/dexalot-trade-kit",
+  "repository": "https://github.com/dexalot/dexalot-trade-kit",
   "license": "MIT",
   "keywords": ["dexalot", "dex", "trading", "defi", "avalanche", "rfq", "clob", "mcp"],
   "mcpServers": {

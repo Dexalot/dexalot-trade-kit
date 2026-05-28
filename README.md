@@ -55,7 +55,7 @@ It runs as a **local process** with your wallet private key stored only on your 
 ### Option A — Claude Code plugin (skills + MCP server in one step)
 
 ```text
-/plugin marketplace add Dexalot/dexalot-trade-kit
+/plugin marketplace add dexalot/dexalot-trade-kit
 /plugin install dexalot-trade@dexalot-trade-kit
 ```
 
