@@ -1,10 +1,10 @@
 ---
 name: dexalot-market
-description: "Use this skill when the user asks for: list of Dexalot trading pairs, available tokens or token metadata across Avalanche/Ethereum/Arbitrum/Dexalot subnet, historical candles (OHLCV) for any pair, earliest candle timestamp, Dexalot environments (mainnet/testnet/devnet chain registries), deployed contract addresses (Portfolio/TradePairs/MainnetRFQ) and their ABIs, global app settings (feature flags, fee tiers, kill-switches), or the SDN/blacklist of restricted addresses on Dexalot. All commands are read-only public REST and require NO wallet, NO private key, and NO Dexalot account. Do NOT use for placing/cancelling orders (dexalot-clob), account balances (dexalot-portfolio), RFQ swaps (dexalot-swap), deposits/withdrawals (dexalot-transfer), analytics rankings (dexalot-analytics), or vault info (dexalot-vaults)."
+description: "Use this skill when the user asks for: list of Dexalot trading pairs, available tokens or token metadata across Avalanche/Ethereum/Arbitrum/Dexalot subnet, the live orderbook (bids/asks) for a pair, historical candles (OHLCV) for any pair, earliest candle timestamp, Dexalot environments (mainnet/testnet/devnet chain registries), deployed contract addresses (Portfolio/TradePairs/MainnetRFQ) and their ABIs, global app settings (feature flags, fee tiers, kill-switches), or the SDN/blacklist of restricted addresses on Dexalot. All commands are read-only and require NO wallet, NO private key, and NO Dexalot account. Do NOT use for placing/cancelling orders (dexalot-clob), account balances (dexalot-portfolio), RFQ swaps (dexalot-swap), deposits/withdrawals (dexalot-transfer), analytics rankings (dexalot-analytics), or vault info (dexalot-vaults)."
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.1.0"
+  version: "0.2.0"
   homepage: "https://app.dexalot.com"
   agent:
     requires:
@@ -21,7 +21,9 @@ metadata:
 
 > **Compliance notice**: This skill provides raw market data only. No strategy, recommendation, or optimization logic is embedded. All outputs are objective payloads; interpretation and trading decisions remain solely with the user.
 
-Public market data for the Dexalot DEX: trading pairs, token registry, historical candles, environments, deployed contracts, app settings, and the address blacklist. All commands are **read-only** and require **no wallet credentials**.
+Public market data for the Dexalot DEX: trading pairs, token registry, live orderbook, historical candles, environments, deployed contracts, app settings, and the address blacklist. All commands are **read-only** and require **no wallet credentials**.
+
+> **Routing:** `get-pairs`, `get-tokens`, `get-environments`, and `get-orderbook` are served by the `@dexalot/dexalot-sdk` (on-chain / canonical reads); `get-deployed-contracts`, `get-app-settings`, `get-candles`, `get-oldest-candle-ts`, and `get-blacklisted-addresses` hit the public REST backend. Both are transparent — every command stays read-only and wallet-free.
 
 **Skill routing:**
 - Market data and discovery → `dexalot-market` (this skill)
@@ -60,14 +62,15 @@ Add `--json` for the full `ToolResult` (endpoint + timestamp + data). Add `--env
 |---|---|---|
 | 1 | `dexalot market get-pairs` | List every CLOB pair with min/max trade amounts, decimals, fee bps, status. |
 | 2 | `dexalot market get-tokens` | List every recognized token across all connected chains (subnet symbol, addresses, decimals, auction state). |
-| 3 | `dexalot market get-environments [--frontend false]` | List the connected chain environments for the active network. |
-| 4 | `dexalot market get-deployed-contracts [--env name] [--contracttype All] [--returnabi false]` | Fetch deployed contract addresses + ABIs (Portfolio, TradePairs, MainnetRFQ). |
-| 5 | `dexalot market get-app-settings` | Fetch global app settings (feature flags, fee tiers, kill-switches). |
-| 6 | `dexalot market get-candles --pair P --periodfrom F --periodto T --intervalnum N --intervalstr U` | OHLCV history; intervalstr ∈ {minutes, hours, day}. |
-| 7 | `dexalot market get-oldest-candle-ts --pair P --interval I` | Earliest candle timestamp for a pair at a given interval. |
-| 8 | `dexalot market get-blacklisted-addresses` | SDN/blacklist of addresses Dexalot's backend refuses. |
+| 3 | `dexalot market get-environments` | List the connected chain environments for the active network. |
+| 4 | `dexalot market get-orderbook --pair P` | Live orderbook snapshot (bids/asks with price + quantity) for a pair. |
+| 5 | `dexalot market get-deployed-contracts [--env name] [--contracttype All] [--returnabi false]` | Fetch deployed contract addresses + ABIs (Portfolio, TradePairs, MainnetRFQ). |
+| 6 | `dexalot market get-app-settings` | Fetch global app settings (feature flags, fee tiers, kill-switches). |
+| 7 | `dexalot market get-candles --pair P --periodfrom F --periodto T --intervalnum N --intervalstr U` | OHLCV history; intervalstr ∈ {minutes, hours, day}. |
+| 8 | `dexalot market get-oldest-candle-ts --pair P --interval I` | Earliest candle timestamp for a pair at a given interval. |
+| 9 | `dexalot market get-blacklisted-addresses` | SDN/blacklist of addresses Dexalot's backend refuses. |
 
-Action aliases: `pairs`, `tokens`, `environments`, `deployment`, `settings`, `candles`, `oldest-candle-ts`, `blacklist`.
+Action aliases: `pairs`, `tokens`, `environments`, `orderbook`, `deployment`, `settings`, `candles`, `oldest-candle-ts`, `blacklist`.
 
 ---
 

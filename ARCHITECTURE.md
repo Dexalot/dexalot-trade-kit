@@ -87,24 +87,42 @@ The CLI gets the same `ToolSpec[]` via `createToolRunner` and translates `dexalo
 
 **Origin header:** Dexalot's REST backend enforces an Origin allow-list — every request also carries `Origin` + `Referer` headers matching the active network's `webUrl` (e.g. `https://app.dexalot.com` for mainnet). Without these, the backend returns "Not allowed by CORS". The REST client injects them automatically for every mountpoint except `merkl`.
 
-## 5. SDK boundary
+## 5. SDK boundary — SDK-first policy
 
-Anything that submits or reads an on-chain transaction routes through `DexalotContractClient` (a lazy wrapper around `@dexalot/dexalot-sdk`'s `DexalotClient`). REST is used for everything else.
+**Policy: use `@dexalot/dexalot-sdk` wherever it exposes a method; fall back to REST only for endpoints the SDK does not cover.** No duplicate REST re-implementations of SDK functionality. `DexalotContractClient` is the lazy wrapper around the SDK's `DexalotClient`.
 
-| Tool class | Routes via |
+### SDK-native (routed through the SDK)
+
+| Tools | SDK method(s) |
 |---|---|
-| `clob.write` (place / cancel / replace / batch) | SDK |
-| `clob_get_order_by_client_id` | SDK (no REST equivalent) |
-| `clob.read` (other) | REST `signed/` |
-| `swap.*` | SDK (handles chain resolution + token normalization) |
-| `transfer.{deposit,withdraw,add_gas,remove_gas,transfer_portfolio,get_deposit_bridge_fee,get_token_details}` | SDK |
-| `transfer.get_combined_transfers` | REST `signed/` |
-| `portfolio.{get_balance,get_all_balances,get_chain_balance(s),get_all_chain_balances}` | SDK |
-| `portfolio.{get_token_usd_prices,…history,get_balance_proof}` | REST |
-| `market.*`, `analytics.*`, `info.*`, `leaderboard.*`, `vaults.*`, `trader_history.*`, `rewards.{subnet,breakdown,…}`, `pnl.*` | REST |
-| `rewards.get_stake_merkl` | external merkl-api |
+| `market_get_pairs` | `getClobPairs` |
+| `market_get_tokens` | `getTokens` |
+| `market_get_environments` | `getEnvironments` |
+| `market_get_orderbook` | `getOrderBook` |
+| `clob_get_open_orders` | `getOpenOrders` |
+| `clob_get_order` | `getOrder` |
+| `clob_get_order_by_client_id` | `getOrderByClientId` |
+| all 9 `clob.write` | `addOrder` / `addOrderList` / `cancelOrder` / … |
+| `swap_get_pairs` / `get_quote` / `get_firm_quote` / `execute` | `getSwapPairs` / `getSwapQuote` / `getSwapFirmQuote` / `executeRFQSwap` |
+| `portfolio_get_balance` / `get_all_balances` / `get_chain_balance(s)` / `get_all_chain_balances` | `getPortfolioBalance` / … |
+| all transfer writes + `get_deposit_bridge_fee` + `get_token_details` | `deposit` / `withdraw` / `addGas` / `removeGas` / `transferPortfolio` / … |
+| revert-reason decoding | `getRevertReason` |
 
-The SDK is initialized **lazily** on the first call that needs it. Tools that never touch the chain never pay the deployment-fetching cost.
+### REST-only (SDK has no equivalent — documented gap)
+
+| Tools | Why REST |
+|---|---|
+| `market_get_candles`, `market_get_oldest_candle_ts`, `market_get_app_settings`, `market_get_blacklisted_addresses` | no SDK method |
+| `market_get_deployed_contracts` | SDK `getDeployment()` takes no params (no env/contracttype/returnabi filter) — REST keeps the richer capability |
+| `clob_get_orders_by_account` | SDK only does open orders + single-order reads, not full paginated history |
+| `portfolio_get_token_usd_prices`, `…_price_history`, `…_hourly_price_history`, `get_balance_proof` | no SDK method |
+| `transfer_get_combined_transfers` | no SDK method |
+| all `analytics`, `info`, `leaderboard`, `vaults`, `trader_history`, `pnl` | no SDK methods (the SDK is a trading/account SDK; these are backend analytics/social endpoints) |
+| `rewards_*` subnet/breakdown/signature | signed REST; `rewards_get_stake_merkl` → external Merkl API |
+
+The SDK is initialized **lazily** on the first call that needs it — including the now-SDK-routed market reads. Pure-REST tools (analytics, info, etc.) never trigger SDK init.
+
+> **Trade-off accepted with SDK-first:** the SDK swallows REST error bodies, so `swap_get_quote` / `get_firm_quote` surface a generic "Request failed with status code 400" instead of the backend's `{reasonCode:"FQ-015"}`. REST-routed tools keep full error detail (the REST client parses `reasonCode`/`reason`). This is the documented cost of routing swaps through the SDK.
 
 ### SDK base URL quirk
 

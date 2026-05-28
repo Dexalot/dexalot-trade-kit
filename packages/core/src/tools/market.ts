@@ -9,17 +9,21 @@ import { publicRateLimit } from "./common.js";
 import type { ToolSpec } from "./types.js";
 
 /**
- * Market data tools. All endpoints are public REST GETs against the
- * `${baseUrl}/trading/` mountpoint and require no wallet.
+ * Market data tools.
  *
- * Source-of-truth for endpoint shapes:
- *   - the Dexalot frontend's `src/api/index.ts` (actual production calls)
- *   - the @dexalot/dexalot-sdk types under `core/`
+ * Routing (SDK-first per project policy — use the SDK wherever it has a
+ * method, fall back to REST only for endpoints the SDK doesn't expose):
  *
- * NOTE: `market_get_orderbook` is intentionally deferred to a later stage
- * because Dexalot's orderbook is delivered either via WebSocket (frontend
- * pattern) or via on-chain TradePairs contract reads (SDK pattern). Neither
- * fits the pure-REST market mountpoint we're shipping in Stage 2.
+ *   SDK:  get_pairs (getClobPairs), get_tokens (getTokens),
+ *         get_environments (getEnvironments), get_orderbook (getOrderBook)
+ *   REST: get_candles, get_oldest_candle_ts, get_app_settings,
+ *         get_blacklisted_addresses  — no SDK method exists
+ *         get_deployed_contracts     — SDK getDeployment() takes no params
+ *                                      (no env/contracttype/returnabi filter),
+ *                                      so REST keeps the richer capability
+ *
+ * Source-of-truth for REST endpoint shapes: the Dexalot frontend's
+ * `src/api/index.ts`.
  */
 
 const PAIR_PROP = {
@@ -40,8 +44,10 @@ export function registerMarketTools(): ToolSpec[] {
         properties: {},
         additionalProperties: false,
       },
-      handler: async (_args, { client }) => {
-        return client.tradeGet("pairs", undefined, publicRateLimit("market_get_pairs", 10));
+      handler: async (_args, { contract }) => {
+        const sdk = await contract.get();
+        const data = contract.unwrap(await sdk.getClobPairs(), "market.getClobPairs");
+        return { endpoint: "SDK getClobPairs", requestTime: new Date().toISOString(), data };
       },
     },
 
@@ -56,8 +62,10 @@ export function registerMarketTools(): ToolSpec[] {
         properties: {},
         additionalProperties: false,
       },
-      handler: async (_args, { client }) => {
-        return client.tradeGet("tokens", undefined, publicRateLimit("market_get_tokens", 10));
+      handler: async (_args, { contract }) => {
+        const sdk = await contract.get();
+        const data = contract.unwrap(await sdk.getTokens(), "market.getTokens");
+        return { endpoint: "SDK getTokens", requestTime: new Date().toISOString(), data };
       },
     },
 
@@ -69,22 +77,36 @@ export function registerMarketTools(): ToolSpec[] {
       isWrite: false,
       inputSchema: {
         type: "object",
-        properties: {
-          frontend: {
-            type: "boolean",
-            description: "Include frontend-only environments. Default: true (matches the Dexalot app's behavior).",
-          },
-        },
+        properties: {},
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client }) => {
+      handler: async (_args, { contract }) => {
+        const sdk = await contract.get();
+        const data = contract.unwrap(await sdk.getEnvironments(), "market.getEnvironments");
+        return { endpoint: "SDK getEnvironments", requestTime: new Date().toISOString(), data };
+      },
+    },
+
+    {
+      name: "market_get_orderbook",
+      module: "market",
+      description:
+        "Fetch the current order book (bids + asks with price/quantity levels) for a pair. Routes through the SDK's on-chain TradePairs read. Use before placing limit orders to gauge depth and the current spread.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          pair: PAIR_PROP,
+        },
+        required: ["pair"],
+        additionalProperties: false,
+      },
+      handler: async (rawArgs, { contract }) => {
         const args = asRecord(rawArgs);
-        const frontend = readBoolean(args, "frontend") ?? true;
-        return client.tradeGet(
-          "environments",
-          { frontend },
-          publicRateLimit("market_get_environments", 5),
-        );
+        const pair = requireString(args, "pair");
+        const sdk = await contract.get();
+        const data = contract.unwrap(await sdk.getOrderBook(pair), "market.getOrderBook");
+        return { endpoint: "SDK getOrderBook", requestTime: new Date().toISOString(), data };
       },
     },
 

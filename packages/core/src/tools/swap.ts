@@ -29,77 +29,6 @@ const CHAIN_PROP = {
 };
 
 /**
- * Resolve {from, to} into a Dexalot RFQ pair string + direction flags.
- * Mirrors the SDK's `_resolvePair` but doesn't require an initialized SDK
- * (we fetch the pair list once per chain via the existing swap_get_pairs
- * SDK call, which we keep around for caching).
- *
- *  - If `fromToken/toToken` exists in pairs → from is base, side=1 (SELL base)
- *  - If `toToken/fromToken` exists → from is quote, side=0 (BUY base with quote)
- *  - amount is in fromToken units regardless of direction
- *
- * Returns the canonical { pair, side, isbase } the backend expects.
- */
-async function resolveSwapPair(
-  contract: import("../client/contract-client.js").DexalotContractClient,
-  fromToken: string,
-  toToken: string,
-  chainId: number,
-): Promise<{ pair: string; side: 0 | 1; isbase: 0 | 1 }> {
-  const sdk = await contract.get();
-  const pairsResult = await sdk.getSwapPairs(chainId);
-  const pairs = contract.unwrap(pairsResult, "swap.getSwapPairs") as Record<string, unknown>;
-  const forward = `${fromToken}/${toToken}`;
-  const reverse = `${toToken}/${fromToken}`;
-  if (pairs[forward]) {
-    return { pair: forward, side: 1, isbase: 1 };
-  }
-  if (pairs[reverse]) {
-    return { pair: reverse, side: 0, isbase: 0 };
-  }
-  throw new ValidationError(
-    `No RFQ pair found for ${fromToken}↔${toToken} on chain ${chainId}. ` +
-    `Available pairs: ${Object.keys(pairs).slice(0, 8).join(", ")}…`,
-  );
-}
-
-/**
- * Fetch an RFQ quote (soft or firm) directly via our REST client so backend
- * error bodies (`{success: false, reasonCode: "FQ-015", reason: "..."}`) are
- * preserved verbatim. The SDK's getSwapQuote swallows the response body and
- * only surfaces "Request failed with status code 400", losing all context.
- */
-async function getSwapQuoteViaRest(
-  client: import("../client/rest-client.js").DexalotRestClient,
-  contract: import("../client/contract-client.js").DexalotContractClient,
-  fromToken: string,
-  toToken: string,
-  amount: number,
-  chainId: number,
-  firm: boolean,
-): Promise<{ endpoint: string; requestTime: string; data: unknown }> {
-  const { pair, side, isbase } = await resolveSwapPair(contract, fromToken, toToken, chainId);
-  const path = firm ? "firmQuote" : "pairprice";
-  const params: Record<string, unknown> = {
-    chainid: chainId,
-    pair,
-    amount: amount.toString(),
-    isbase: String(isbase),
-    side: String(side),
-  };
-  if (firm) {
-    if (!client.walletAddress) {
-      throw new ValidationError("firm quote requires a wallet (no signer available).");
-    }
-    params.address = client.walletAddress;
-  } else {
-    // Soft quote uses a sentinel taker (matches SDK behavior).
-    params.taker = "0x0000000000000000000000000000000000000000";
-  }
-  return client.swapGet(path, params);
-}
-
-/**
  * Normalize a quote payload into the shape `executeRFQSwap` expects.
  *
  * The backend's firmQuote endpoint returns either:
@@ -188,16 +117,20 @@ export function registerSwapTools(): ToolSpec[] {
         required: ["fromToken", "toToken", "amount"],
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client, contract }) => {
+      handler: async (rawArgs, { contract }) => {
         const args = asRecord(rawArgs);
+        const sdk = await contract.get();
         const fromToken = requireString(args, "fromToken");
         const toToken = requireString(args, "toToken");
         const amount = readNumber(args, "amount");
         if (amount === undefined) throw new ValidationError("amount is required.");
         const firm = readBoolean(args, "firm") ?? false;
         const chainId = readNumber(args, "chainId");
-        if (chainId === undefined) throw new ValidationError("chainId is required (e.g. 43113 for Fuji, 43114 for Avalanche).");
-        return getSwapQuoteViaRest(client, contract, fromToken, toToken, amount, chainId, firm);
+        const data = contract.unwrap(
+          await sdk.getSwapQuote(fromToken, toToken, amount, firm, chainId),
+          "swap.getSwapQuote",
+        );
+        return { endpoint: "SDK getSwapQuote", requestTime: new Date().toISOString(), data };
       },
     },
 
@@ -218,16 +151,20 @@ export function registerSwapTools(): ToolSpec[] {
         required: ["fromToken", "toToken", "amount"],
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client, contract }) => {
+      handler: async (rawArgs, { contract }) => {
         const args = asRecord(rawArgs);
         contract.requireWallet();
+        const sdk = await contract.get();
         const fromToken = requireString(args, "fromToken");
         const toToken = requireString(args, "toToken");
         const amount = readNumber(args, "amount");
         if (amount === undefined) throw new ValidationError("amount is required.");
         const chainId = readNumber(args, "chainId");
-        if (chainId === undefined) throw new ValidationError("chainId is required.");
-        return getSwapQuoteViaRest(client, contract, fromToken, toToken, amount, chainId, true);
+        const data = contract.unwrap(
+          await sdk.getSwapFirmQuote(fromToken, toToken, amount, chainId),
+          "swap.getSwapFirmQuote",
+        );
+        return { endpoint: "SDK getSwapFirmQuote", requestTime: new Date().toISOString(), data };
       },
     },
 

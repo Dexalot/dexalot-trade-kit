@@ -36,6 +36,10 @@ export async function cmdMarketGetEnvironments(runner: ToolRunner, v: CliValues)
   await callMarket(runner, "market_get_environments", v.rest, v);
 }
 
+export async function cmdMarketGetOrderbook(runner: ToolRunner, v: CliValues): Promise<void> {
+  await callMarket(runner, "market_get_orderbook", v.rest, v);
+}
+
 export async function cmdMarketGetDeployedContracts(runner: ToolRunner, v: CliValues): Promise<void> {
   await callMarket(runner, "market_get_deployed_contracts", v.rest, v);
 }
@@ -75,6 +79,9 @@ export async function dispatchMarketCommand(
     case "get-environments":
     case "environments":
       await cmdMarketGetEnvironments(runner, v); return true;
+    case "get-orderbook":
+    case "orderbook":
+      await cmdMarketGetOrderbook(runner, v); return true;
     case "get-deployed-contracts":
     case "deployed-contracts":
     case "deployment":

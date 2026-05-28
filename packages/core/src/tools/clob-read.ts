@@ -8,8 +8,14 @@ import { signedRateLimit } from "./common.js";
 import type { ToolSpec } from "./types.js";
 
 /**
- * Read-side CLOB tools. Three of four hit `${baseUrl}/trading/signed/`;
- * `get_order_by_client_id` reads on-chain via the SDK (no REST equivalent).
+ * Read-side CLOB tools.
+ *
+ * Routing (SDK-first):
+ *   SDK:  get_open_orders (getOpenOrders), get_order (getOrder by id),
+ *         get_order_by_client_id (getOrderByClientId)
+ *   REST: get_orders_by_account — full historical order list (any status,
+ *         paginated). The SDK only exposes open orders + single-order reads,
+ *         so account history has no SDK equivalent and stays on signed REST.
  */
 
 const PAIR_PROP = {
@@ -33,27 +39,22 @@ export function registerClobReadTools(): ToolSpec[] {
       name: "clob_get_open_orders",
       module: "clob.read",
       description:
-        "Fetch the wallet's currently-open CLOB orders, optionally filtered by pair. Returns open + partially-filled orders; canceled/filled orders are not included. Requires the x-signature header.",
+        "Fetch the wallet's currently-open CLOB orders, optionally filtered by pair. Returns open + partially-filled orders; canceled/filled orders are not included. Routes through the SDK (getOpenOrders).",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           pair: PAIR_PROP,
-          limit: { type: "number", description: "Maximum rows to return." },
-          offset: { type: "number", description: "Rows to skip (pagination)." },
         },
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client }) => {
+      handler: async (rawArgs, { contract }) => {
         const args = asRecord(rawArgs);
-        const params: Record<string, string | number> = { status: "OPEN" };
+        contract.requireWallet();
+        const sdk = await contract.get();
         const pair = readString(args, "pair");
-        const limit = readNumber(args, "limit");
-        const offset = readNumber(args, "offset");
-        if (pair) params.pair = pair;
-        if (limit !== undefined) params.limit = limit;
-        if (offset !== undefined) params.offset = offset;
-        return client.signedGet("orders", params, signedRateLimit("clob_get_open_orders", 5));
+        const data = contract.unwrap(await sdk.getOpenOrders(pair), "clob.getOpenOrders");
+        return { endpoint: "SDK getOpenOrders", requestTime: new Date().toISOString(), data };
       },
     },
 
@@ -99,24 +100,23 @@ export function registerClobReadTools(): ToolSpec[] {
       name: "clob_get_order",
       module: "clob.read",
       description:
-        "Fetch the full transaction history for one order by internal order id (every fill, partial, cancel event). Returns an array of event rows from the backend.",
+        "Fetch a single order's current state by internal order id (status, filled quantity, price, fees). Routes through the SDK's on-chain TradePairs read (getOrder).",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          orderid: ORDER_ID_PROP,
+          orderId: ORDER_ID_PROP,
         },
-        required: ["orderid"],
+        required: ["orderId"],
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client }) => {
+      handler: async (rawArgs, { contract }) => {
         const args = asRecord(rawArgs);
-        const orderid = requireString(args, "orderid");
-        return client.signedGet(
-          "transactions",
-          { orderid },
-          signedRateLimit("clob_get_order", 5),
-        );
+        contract.requireWallet();
+        const sdk = await contract.get();
+        const orderId = requireString(args, "orderId");
+        const data = contract.unwrap(await sdk.getOrder(orderId), "clob.getOrder");
+        return { endpoint: "SDK getOrder", requestTime: new Date().toISOString(), data };
       },
     },
 

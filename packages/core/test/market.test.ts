@@ -21,6 +21,27 @@ function stubClient(returnData: unknown): { recorded: RecordedCall[]; client: an
   };
 }
 
+/**
+ * Stub the SDK-backed contract path for SDK-routed market tools
+ * (get_pairs, get_tokens, get_environments, get_orderbook).
+ */
+function stubContract(returnData: unknown): { recorded: string[]; contract: any } {
+  const recorded: string[] = [];
+  const sdk = {
+    getClobPairs: async () => { recorded.push("getClobPairs"); return { success: true, data: returnData }; },
+    getTokens: async () => { recorded.push("getTokens"); return { success: true, data: returnData }; },
+    getEnvironments: async () => { recorded.push("getEnvironments"); return { success: true, data: returnData }; },
+    getOrderBook: async (pair: string) => { recorded.push(`getOrderBook:${pair}`); return { success: true, data: returnData }; },
+  };
+  return {
+    recorded,
+    contract: {
+      get: async () => sdk,
+      unwrap: (r: { success: boolean; data?: unknown }) => r.data,
+    },
+  };
+}
+
 const BASE_CONFIG: DexalotConfig = {
   hasAuth: false,
   profile: "default",
@@ -40,8 +61,8 @@ const BASE_CONFIG: DexalotConfig = {
 describe("market tools registry", () => {
   const tools = registerMarketTools();
 
-  it("registers exactly 8 tools, all in the market module, all reads", () => {
-    assert.equal(tools.length, 8);
+  it("registers 9 tools, all in the market module, all reads", () => {
+    assert.equal(tools.length, 9);
     for (const tool of tools) {
       assert.equal(tool.module, "market");
       assert.equal(tool.isWrite, false, `${tool.name} must be read-only`);
@@ -62,32 +83,52 @@ describe("market tools registry", () => {
   });
 });
 
-describe("market_get_pairs", () => {
+describe("market_get_pairs (SDK)", () => {
   const tool = registerMarketTools().find((t) => t.name === "market_get_pairs")!;
 
-  it("calls trade-api /pairs with no query params", async () => {
-    const { recorded, client } = stubClient([{ pair: "ALOT/USDC" }]);
-    const result = await tool.handler({}, { config: BASE_CONFIG, client, contract: {} as any });
-    assert.equal(recorded.length, 1);
-    assert.equal(recorded[0]!.path, "pairs");
-    assert.equal(recorded[0]!.query, undefined);
+  it("routes through SDK getClobPairs", async () => {
+    const { recorded, contract } = stubContract([{ pair: "ALOT/USDC" }]);
+    const result = await tool.handler({}, { config: BASE_CONFIG, client: {} as any, contract });
+    assert.deepEqual(recorded, ["getClobPairs"]);
     assert.deepEqual((result as any).data, [{ pair: "ALOT/USDC" }]);
   });
 });
 
-describe("market_get_environments", () => {
+describe("market_get_tokens (SDK)", () => {
+  const tool = registerMarketTools().find((t) => t.name === "market_get_tokens")!;
+
+  it("routes through SDK getTokens", async () => {
+    const { recorded, contract } = stubContract([{ symbol: "ALOT" }]);
+    await tool.handler({}, { config: BASE_CONFIG, client: {} as any, contract });
+    assert.deepEqual(recorded, ["getTokens"]);
+  });
+});
+
+describe("market_get_environments (SDK)", () => {
   const tool = registerMarketTools().find((t) => t.name === "market_get_environments")!;
 
-  it("defaults frontend=true", async () => {
-    const { recorded, client } = stubClient([]);
-    await tool.handler({}, { config: BASE_CONFIG, client, contract: {} as any });
-    assert.deepEqual(recorded[0]!.query, { frontend: true });
+  it("routes through SDK getEnvironments", async () => {
+    const { recorded, contract } = stubContract([]);
+    await tool.handler({}, { config: BASE_CONFIG, client: {} as any, contract });
+    assert.deepEqual(recorded, ["getEnvironments"]);
+  });
+});
+
+describe("market_get_orderbook (SDK)", () => {
+  const tool = registerMarketTools().find((t) => t.name === "market_get_orderbook")!;
+
+  it("routes through SDK getOrderBook with the pair", async () => {
+    const { recorded, contract } = stubContract({ bids: [], asks: [] });
+    await tool.handler({ pair: "ALOT/USDC" }, { config: BASE_CONFIG, client: {} as any, contract });
+    assert.deepEqual(recorded, ["getOrderBook:ALOT/USDC"]);
   });
 
-  it("respects explicit frontend=false", async () => {
-    const { recorded, client } = stubClient([]);
-    await tool.handler({ frontend: false }, { config: BASE_CONFIG, client, contract: {} as any });
-    assert.deepEqual(recorded[0]!.query, { frontend: false });
+  it("rejects missing pair", async () => {
+    const { contract } = stubContract({});
+    await assert.rejects(
+      tool.handler({}, { config: BASE_CONFIG, client: {} as any, contract }),
+      /pair/i,
+    );
   });
 });
 

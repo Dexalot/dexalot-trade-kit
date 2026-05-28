@@ -64,6 +64,14 @@ function stub(): { recorded: Recorded[]; client: any; contract: any } {
           recorded.push({ method: "sdk.getOrderByClientId", args });
           return { success: true, data: { pair: "ALOT/USDC", clientOrderId: args[0] } };
         },
+        getOpenOrders: async (...args: unknown[]) => {
+          recorded.push({ method: "sdk.getOpenOrders", args });
+          return { success: true, data: [] };
+        },
+        getOrder: async (...args: unknown[]) => {
+          recorded.push({ method: "sdk.getOrder", args });
+          return { success: true, data: { id: args[0], status: "NEW" } };
+        },
       }),
       unwrap: (r: { success: boolean; data?: unknown }) => r.data,
     },
@@ -110,17 +118,19 @@ describe("clob.write registry", () => {
   });
 });
 
-describe("clob_get_open_orders", () => {
+describe("clob_get_open_orders (SDK)", () => {
   const tool = registerClobReadTools().find((t) => t.name === "clob_get_open_orders")!;
-  it("hits signed/orders with status=OPEN, no pair", async () => {
+  it("routes through SDK getOpenOrders with no pair", async () => {
     const { recorded, client, contract } = stub();
     await tool.handler({}, { config: BASE_CONFIG, client, contract });
-    assert.deepEqual(recorded[0]!.query, { status: "OPEN" });
+    assert.equal(recorded[0]!.method, "sdk.getOpenOrders");
+    assert.deepEqual(recorded[0]!.args, [undefined]);
   });
-  it("forwards pair + pagination params", async () => {
+  it("forwards pair to getOpenOrders", async () => {
     const { recorded, client, contract } = stub();
-    await tool.handler({ pair: "ALOT/USDC", limit: 20, offset: 40 }, { config: BASE_CONFIG, client, contract });
-    assert.deepEqual(recorded[0]!.query, { status: "OPEN", pair: "ALOT/USDC", limit: 20, offset: 40 });
+    await tool.handler({ pair: "ALOT/USDC" }, { config: BASE_CONFIG, client, contract });
+    assert.equal(recorded[0]!.method, "sdk.getOpenOrders");
+    assert.deepEqual(recorded[0]!.args, ["ALOT/USDC"]);
   });
 });
 

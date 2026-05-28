@@ -27,11 +27,19 @@ Both surfaces are thin: parse input → call into `core/tools/*` → return resu
 
 Dexalot's REST backend returns "Not allowed by CORS" when `Origin` is missing or unrecognized. `buildHeaders` injects `Origin` + `Referer` matching the active network's `webUrl` automatically. Don't remove this. See the memory file `dexalot-origin-cors.md`.
 
-### SDK boundary
+### SDK boundary — SDK-first policy
 
-`DexalotContractClient` wraps `@dexalot/dexalot-sdk`'s `DexalotClient` and initializes lazily on first use. Used for: every `clob.write` tool, `clob_get_order_by_client_id`, every `swap.*` tool, every `transfer` write + bridge-fee + token-details read, every `portfolio` balance read. Everything else hits REST directly.
+**Use `@dexalot/dexalot-sdk` wherever it has a method; REST only for the gap. No duplicate REST re-implementations of SDK functionality.** `DexalotContractClient` wraps the SDK and initializes lazily on first use.
 
-**Important quirk:** the SDK prepends `/privapi/...` and `/api/...` to its `apiBaseUrl`. Our REST client uses `https://api.dexalot.com/api` as the base, so `DexalotContractClient` strips the trailing `/api` before handing the URL to the SDK. See [packages/core/src/client/contract-client.ts:initSdk](packages/core/src/client/contract-client.ts).
+SDK-routed: all `market` reads except candles/oldest-candle-ts/app-settings/blacklist/deployed-contracts (i.e. pairs/tokens/environments/orderbook via getClobPairs/getTokens/getEnvironments/getOrderBook), all `clob.read` except get_orders_by_account, all `clob.write`, all `swap.*`, all `portfolio` balances, all `transfer` writes + bridge-fee + token-details, and revert decoding (`getRevertReason`).
+
+REST-only (no SDK method — see ARCHITECTURE.md §5 table for the full list + reasons): `analytics`, `info`, `leaderboard`, `vaults`, `trader_history`, `pnl`, `rewards`, portfolio USD-prices/history/balance-proof, market candles/app-settings/blacklist/deployed-contracts, clob get_orders_by_account, transfer get_combined_transfers.
+
+When adding a tool: **check the SDK surface first** (`grep getX node_modules/@dexalot/dexalot-sdk/dist/core/*.d.ts`). If the SDK has it, route through `contract.get()`; only use `client` (REST) if it doesn't, and add a one-line "REST: no SDK method" note.
+
+**Two quirks:**
+- The SDK prepends `/privapi/...` and `/api/...` to its `apiBaseUrl`, so `DexalotContractClient` strips the trailing `/api` before handing the base URL to the SDK.
+- The SDK swallows REST error bodies — `swap_get_quote`/`get_firm_quote` lose the backend `reasonCode` (FQ-xxx) and show a generic "status 400". Accepted cost of SDK-first; REST-routed tools keep full error detail via the REST client's `reasonCode` parsing.
 
 ### Lazy signature cache
 
