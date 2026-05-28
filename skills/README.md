@@ -7,6 +7,21 @@ Drop-in skill files for AI agent frameworks (Claude Code, Codex CLI, and any com
 
 All skills call the CLI (`dexalot market get-pairs`), not MCP tool names directly. The CLI shares its tool registry with the MCP server, so behavior is identical.
 
+## Install
+
+**As a Claude Code plugin** (installs all 12 skills + registers the MCP server):
+
+```text
+/plugin marketplace add Dexalot/dexalot-trade-kit
+/plugin install dexalot-trade@dexalot-trade-kit
+```
+
+**Standalone** (any compatible runtime): copy the `skills/dexalot-*` folders into your agent's skills directory. Each skill's `agent.install` frontmatter declares its dependency on the `dexalot` CLI (`@dexalot/trade-cli`), so the runtime can offer to install it on first use. Either way the CLI must be on `PATH`:
+
+```bash
+npm install -g @dexalot/trade-cli && dexalot --version
+```
+
 ## Catalog
 
 | Skill | Auth required? | Stage |

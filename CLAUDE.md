@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Dexalot Trade Kit — TypeScript/ESM monorepo shipping an MCP server (`@dexalot-trade-kit/mcp`) and a CLI (`@dexalot-trade-kit/cli`) that wrap the Dexalot DEX. Both binaries share `@dexalot-trade-kit/core`, which owns config, REST + on-chain client wrappers, the tool registry, and the error/rate-limit machinery. A `skills/` tree of Markdown files tells AI agents when and how to invoke the CLI tools.
+Dexalot Trade Kit — TypeScript/ESM monorepo shipping an MCP server (`@dexalot/trade-mcp`) and a CLI (`@dexalot/trade-cli`) that wrap the Dexalot DEX. Both binaries share `@dexalot/trade-core`, which owns config, REST + on-chain client wrappers, the tool registry, and the error/rate-limit machinery. A `skills/` tree of Markdown files tells AI agents when and how to invoke the CLI tools.
 
 The codebase follows the established **MCP+CLI shared-tool-registry** pattern (one core, two transport surfaces).
 
@@ -14,7 +14,7 @@ The codebase follows the established **MCP+CLI shared-tool-registry** pattern (o
 
 ```
 MCP host (Claude / Cursor)   ⇄ stdio JSON-RPC ⇄  packages/mcp/src   ┐
-User terminal                ⇄ argv          ⇄  packages/cli/src   ┴── @dexalot-trade-kit/core ── REST + SDK ── Dexalot backend
+User terminal                ⇄ argv          ⇄  packages/cli/src   ┴── @dexalot/trade-core ── REST + SDK ── Dexalot backend
 ```
 
 Both surfaces are thin: parse input → call into `core/tools/*` → return result. The tool registry is the single source of truth — adding a tool to `tools/<module>.ts` and registering it in `tools/index.ts` exposes it to both the MCP server and the CLI automatically.
@@ -88,7 +88,7 @@ pnpm install
 pnpm build                 # core → mcp → cli (order matters)
 pnpm typecheck             # tsc --noEmit across all 3 packages
 pnpm test:unit             # node --test via tsx; 151 tests today
-pnpm --filter @dexalot-trade-kit/core test:unit    # one package
+pnpm --filter @dexalot/trade-core test:unit    # one package
 ```
 
 Single test file:

@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@dexalot-trade-kit/cli@0.1.0"
+        package: "@dexalot/trade-cli@0.1.0"
         bins: ["dexalot"]
         label: "Install dexalot CLI (npm)"
 ---
@@ -39,7 +39,7 @@ Before running any command, follow [`../_shared/preflight.md`](../_shared/prefli
 ## Install
 
 ```bash
-npm install -g @dexalot-trade-kit/cli
+npm install -g @dexalot/trade-cli
 dexalot --version           # verify
 dexalot market get-pairs --network testnet | head   # smoke test
 ```

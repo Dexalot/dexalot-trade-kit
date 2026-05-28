@@ -6,8 +6,8 @@ AI-powered trading toolkit for the [Dexalot](https://app.dexalot.com) DEX. Two s
 
 | Package | Description |
 |---|---|
-| `@dexalot-trade-kit/mcp` | MCP server for Claude / Cursor / any MCP-compatible AI client |
-| `@dexalot-trade-kit/cli` | Terminal CLI for operating Dexalot directly |
+| `@dexalot/trade-mcp` | MCP server for Claude / Cursor / any MCP-compatible AI client |
+| `@dexalot/trade-cli` | Terminal CLI for operating Dexalot directly |
 
 ## What is this?
 
@@ -19,20 +19,20 @@ It runs as a **local process** with your wallet private key stored only on your 
 
 | Feature | Description |
 |---------|-------------|
-| **79 tools across 13 modules** | Full Dexalot surface: CLOB trading, RFQ swaps, cross-chain transfers, portfolio, analytics, leaderboard, OmniVaults, rewards, PnL |
+| **80 tools across 13 modules** | Full Dexalot surface: CLOB trading, RFQ swaps, cross-chain transfers, portfolio, analytics, leaderboard, OmniVaults, rewards, PnL |
 | **Three networks** | `mainnet`, `testnet`, `devnet` — switch with one flag |
 | **Safety controls** | `--read-only` flag drops every on-chain or backend-mutating tool; per-module filtering; built-in rate limiter |
 | **Capability snapshot in every response** | MCP host always knows which modules are active, whether writes are enabled, and which network |
 | **Zero infrastructure** | Local stdio process, no server or database required |
 | **MCP standard** | Works with Claude Desktop, Cursor, Windsurf, VS Code, and any MCP-compatible client |
-| **Agent skills included** | 11 pre-built skill files for AI agent frameworks |
+| **Agent skills included** | 12 pre-built skill files for AI agent frameworks |
 | **Open source** | MIT license, private key never leaves your machine |
 
 ## Modules
 
 | Module | Tools | Description | Auth |
 |---|:-:|---|:-:|
-| `market` | 8 | Pairs, tokens, candles, environments, deployed contracts, app settings, blacklist | — |
+| `market` | 9 | Pairs, tokens, orderbook, candles, environments, deployed contracts, app settings, blacklist | — |
 | `clob.read` | 4 | Open orders, order history, order detail, lookup by client id | ✓ |
 | `clob.write` | 9 | Place / cancel / replace / batch orders on the TradePairs contract | ✓ |
 | `swap` | 4 | RFQ swap pairs, soft / firm quotes, on-chain execute | mixed |
@@ -52,9 +52,20 @@ It runs as a **local process** with your wallet private key stored only on your 
 
 **Prerequisites:** Node.js ≥ 18, pnpm ≥ 9.
 
+### Option A — Claude Code plugin (skills + MCP server in one step)
+
+```text
+/plugin marketplace add Dexalot/dexalot-trade-kit
+/plugin install dexalot-trade@dexalot-trade-kit
+```
+
+This installs all 12 skills and registers the bundled `dexalot-trade-mcp` server. The bundled server runs **`--read-only` on mainnet** by default; to enable trading, configure a profile (`dexalot config init`) and re-register the server without `--read-only` (Option B), or edit the plugin's `mcpServers` args. The skills call the `dexalot` CLI, so install that too (the skill install prompt does this, or run `npm i -g @dexalot/trade-cli`).
+
+### Option B — npm (CLI + MCP server as packages)
+
 ```bash
 # 1. Install
-npm install -g @dexalot-trade-kit/mcp @dexalot-trade-kit/cli
+npm install -g @dexalot/trade-mcp @dexalot/trade-cli
 
 # 2. Configure a profile (interactive wizard)
 dexalot config init
@@ -66,6 +77,8 @@ dexalot-trade-mcp setup --client claude-desktop
 dexalot-trade-mcp setup --client vscode        # writes .mcp.json in cwd
 dexalot-trade-mcp setup --client windsurf
 ```
+
+> **Publish order:** the plugin's bundled MCP server runs `npx -y @dexalot/trade-mcp`, and the skills shell out to the `dexalot` CLI — so the npm packages (Option B) must be published before Option A works end-to-end.
 
 ## dexalot-trade-mcp
 
@@ -147,9 +160,9 @@ pnpm test:unit
 
 ```
 packages/
-├── core/    # @dexalot-trade-kit/core — shared client, tool registry, config
-├── mcp/     # @dexalot-trade-kit/mcp  — MCP server binary
-└── cli/     # @dexalot-trade-kit/cli  — CLI binary
+├── core/    # @dexalot/trade-core — shared client, tool registry, config
+├── mcp/     # @dexalot/trade-mcp  — MCP server binary
+└── cli/     # @dexalot/trade-cli  — CLI binary
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the layered architecture, mountpoint mapping, and SDK boundary rules.

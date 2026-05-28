@@ -13,9 +13,9 @@ import {
   DexalotApiError,
   toToolErrorPayload,
   toMcpTool,
-} from "@dexalot-trade-kit/core";
-import type { DexalotConfig, ModuleId, ToolSpec } from "@dexalot-trade-kit/core";
-import type { TradeLogger } from "@dexalot-trade-kit/core";
+} from "@dexalot/trade-core";
+import type { DexalotConfig, ModuleId, ToolSpec } from "@dexalot/trade-core";
+import type { TradeLogger } from "@dexalot/trade-core";
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 
 const SYSTEM_CAPABILITIES_TOOL_NAME = "system_get_capabilities";

@@ -11,7 +11,7 @@ dexalot --version
 If the command is not found, ask the user to install:
 
 ```bash
-npm install -g @dexalot-trade-kit/cli @dexalot-trade-kit/mcp
+npm install -g @dexalot/trade-cli @dexalot/trade-mcp
 ```
 
 ## Step 2 — Detect profile / network (once per session)

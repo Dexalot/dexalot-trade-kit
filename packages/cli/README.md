@@ -1,4 +1,4 @@
-# @dexalot-trade-kit/cli
+# @dexalot/trade-cli
 
 Command line tool for the Dexalot DEX. Same tool registry as the MCP server —
 just a different transport.
@@ -6,7 +6,7 @@ just a different transport.
 ### Install
 
 ```bash
-npm install -g @dexalot-trade-kit/cli
+npm install -g @dexalot/trade-cli
 ```
 
 ### Configure credentials

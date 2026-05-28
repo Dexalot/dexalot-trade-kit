@@ -7,13 +7,13 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "pnpm --filter @dexalot-trade-kit/core build && pnpm --filter @dexalot-trade-kit/mcp build && pnpm --filter @dexalot-trade-kit/cli build",
+    "build": "pnpm --filter @dexalot/trade-core build && pnpm --filter @dexalot/trade-mcp build && pnpm --filter @dexalot/trade-cli build",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean",
-    "test:unit": "pnpm --filter @dexalot-trade-kit/core test:unit && pnpm --filter @dexalot-trade-kit/cli test:unit && pnpm --filter @dexalot-trade-kit/mcp test:unit",
+    "test:unit": "pnpm --filter @dexalot/trade-core test:unit && pnpm --filter @dexalot/trade-cli test:unit && pnpm --filter @dexalot/trade-mcp test:unit",
     "test:coverage": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts packages/mcp/test/*.test.ts",
     "test": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts packages/mcp/test/*.test.ts",
-    "pretest": "pnpm --filter @dexalot-trade-kit/core build && pnpm --filter @dexalot-trade-kit/cli build"
+    "pretest": "pnpm --filter @dexalot/trade-core build && pnpm --filter @dexalot/trade-cli build"
   },
   "engines": {
     "node": ">=18",

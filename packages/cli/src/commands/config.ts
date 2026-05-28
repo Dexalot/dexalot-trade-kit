@@ -7,8 +7,8 @@ import {
   configFilePath,
   NETWORK_IDS,
   DEXALOT_NETWORKS,
-} from "@dexalot-trade-kit/core";
-import type { DexalotProfile, DexalotTomlConfig, NetworkId } from "@dexalot-trade-kit/core";
+} from "@dexalot/trade-core";
+import type { DexalotProfile, DexalotTomlConfig, NetworkId } from "@dexalot/trade-core";
 import { outputLine, errorLine } from "../formatter.js";
 
 function maskKey(key: string): string {

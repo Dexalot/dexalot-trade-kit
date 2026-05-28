@@ -11,7 +11,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   dts: false,
-  noExternal: ["@dexalot-trade-kit/core"],
+  noExternal: ["@dexalot/trade-core"],
   external: ["undici", "yauzl", "ethers", "@dexalot/dexalot-sdk"],
   banner: { js: "#!/usr/bin/env node" },
   define: { __GIT_HASH__: JSON.stringify(gitHash) },

@@ -11,7 +11,7 @@ import {
   toToolErrorPayload,
   checkForUpdates,
   DexalotMcpError,
-} from "@dexalot-trade-kit/core";
+} from "@dexalot/trade-core";
 import { parseCli } from "./parser.js";
 import type { CliValues } from "./parser.js";
 import { printHelp } from "./help.js";
@@ -167,7 +167,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     return;
   }
 
-  checkForUpdates("@dexalot-trade-kit/cli", CLI_VERSION);
+  checkForUpdates("@dexalot/trade-cli", CLI_VERSION);
 
   try {
     await dispatch(v);

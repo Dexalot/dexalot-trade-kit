@@ -4,8 +4,8 @@ import {
   MODULE_DESCRIPTIONS,
   NETWORK_IDS,
   configFilePath,
-} from "@dexalot-trade-kit/core";
-import type { ModuleId, CliModuleKey } from "@dexalot-trade-kit/core";
+} from "@dexalot/trade-core";
+import type { ModuleId, CliModuleKey } from "@dexalot/trade-core";
 
 function moduleLine(id: CliModuleKey): string {
   const desc = MODULE_DESCRIPTIONS[id] ?? "";

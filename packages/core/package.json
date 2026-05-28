@@ -1,5 +1,5 @@
 {
-  "name": "@dexalot-trade-kit/core",
+  "name": "@dexalot/trade-core",
   "version": "0.1.0",
   "private": true,
   "type": "module",

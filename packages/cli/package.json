@@ -1,5 +1,5 @@
 {
-  "name": "@dexalot-trade-kit/cli",
+  "name": "@dexalot/trade-cli",
   "version": "0.1.0",
   "description": "Dexalot CLI — terminal interface for the Dexalot DEX",
   "type": "module",
@@ -32,11 +32,12 @@
     "dex"
   ],
   "dependencies": {
+    "@dexalot/dexalot-sdk": "^0.5.17",
     "ethers": "^6.16.0",
     "undici": "^6.0.0"
   },
   "devDependencies": {
-    "@dexalot-trade-kit/core": "workspace:*",
+    "@dexalot/trade-core": "workspace:*",
     "@types/node": "^25.2.2",
     "c8": "^10.1.3",
     "tsup": "^8.5.1",

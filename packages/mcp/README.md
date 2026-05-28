@@ -1,4 +1,4 @@
-# @dexalot-trade-kit/mcp
+# @dexalot/trade-mcp
 
 MCP server for the Dexalot DEX, designed for AI tools like Claude Code, Cursor,
 Windsurf, and VS Code. Exposes 79 tools across 13 modules via the Model Context
@@ -7,7 +7,7 @@ Protocol over stdio.
 ### Install
 
 ```bash
-npm install -g @dexalot-trade-kit/mcp @dexalot-trade-kit/cli
+npm install -g @dexalot/trade-mcp @dexalot/trade-cli
 ```
 
 ### Configure credentials
@@ -59,11 +59,11 @@ dexalot-trade-mcp setup --client vscode   # writes .mcp.json in cwd
   "mcpServers": {
     "dexalot-live": {
       "command": "npx",
-      "args": ["-y", "@dexalot-trade-kit/mcp", "--profile", "live", "--modules", "all"]
+      "args": ["-y", "@dexalot/trade-mcp", "--profile", "live", "--modules", "all"]
     },
     "dexalot-testnet": {
       "command": "npx",
-      "args": ["-y", "@dexalot-trade-kit/mcp", "--profile", "test", "--network", "testnet"]
+      "args": ["-y", "@dexalot/trade-mcp", "--profile", "test", "--network", "testnet"]
     }
   }
 }

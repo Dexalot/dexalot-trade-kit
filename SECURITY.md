@@ -23,8 +23,8 @@ We aim to acknowledge within 48 hours and ship a fix or mitigation within 7 days
 
 In scope:
 
-- The CLI (`@dexalot-trade-kit/cli`) and MCP server (`@dexalot-trade-kit/mcp`) binaries.
-- The core library (`@dexalot-trade-kit/core`).
+- The CLI (`@dexalot/trade-cli`) and MCP server (`@dexalot/trade-mcp`) binaries.
+- The core library (`@dexalot/trade-core`).
 - The skills tree under `skills/`.
 - Config loading (`~/.dexalot/config.toml`, env var precedence).
 - Signature handling (`x-signature` cache, the static `"dexalot"` message).

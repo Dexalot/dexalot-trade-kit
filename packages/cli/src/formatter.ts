@@ -1,5 +1,5 @@
 import { EOL } from "node:os";
-import type { DexalotConfig } from "@dexalot-trade-kit/core";
+import type { DexalotConfig } from "@dexalot/trade-core";
 
 /**
  * Stdio sink. Default writes to process.stdout/stderr; swap out in tests.

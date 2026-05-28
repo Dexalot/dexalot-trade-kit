@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Dexalot Trade Kit is an AI-powered trading toolkit for the Dexalot DEX, shipping an MCP server (`@dexalot-trade-kit/mcp`) and a CLI (`@dexalot-trade-kit/cli`). Both binaries share `@dexalot-trade-kit/core` and a single tool registry, so the CLI and the MCP host always return identical results for identical tool calls.
+Dexalot Trade Kit is an AI-powered trading toolkit for the Dexalot DEX, shipping an MCP server (`@dexalot/trade-mcp`) and a CLI (`@dexalot/trade-cli`). Both binaries share `@dexalot/trade-core` and a single tool registry, so the CLI and the MCP host always return identical results for identical tool calls.
 
 - **Transport (MCP):** stdio JSON-RPC
 - **Transport (CLI):** argv → tool runner → stdout
@@ -29,7 +29,7 @@ Dexalot Trade Kit is an AI-powered trading toolkit for the Dexalot DEX, shipping
                └─────────────────┬────────────────┘
                                  │
               ┌──────────────────▼──────────────────┐
-              │  @dexalot-trade-kit/core            │
+              │  @dexalot/trade-core            │
               │  tools/* (13 modules, 79 tools)     │
               │  client/rest-client.ts (mountpoints)│
               │  client/contract-client.ts (SDK)    │
@@ -224,7 +224,7 @@ metadata:
   agent:
     requires:
       bins: ["dexalot"]
-    install: [{ id: npm, kind: node, package: "@dexalot-trade-kit/cli@0.1.0", bins: ["dexalot"] }]
+    install: [{ id: npm, kind: node, package: "@dexalot/trade-cli@0.1.0", bins: ["dexalot"] }]
 ---
 ```
 

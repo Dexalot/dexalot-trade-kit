@@ -80,7 +80,7 @@ export function getConfigPath(client: ClientId): string | null {
   }
 }
 
-const NPX_PACKAGE = "@dexalot-trade-kit/mcp";
+const NPX_PACKAGE = "@dexalot/trade-mcp";
 
 function buildEntry(
   client: ClientId,

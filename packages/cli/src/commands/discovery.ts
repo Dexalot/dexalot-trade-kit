@@ -1,4 +1,4 @@
-import { allToolSpecs, MODULES } from "@dexalot-trade-kit/core";
+import { allToolSpecs, MODULES } from "@dexalot/trade-core";
 import { outputLine } from "../formatter.js";
 
 /**

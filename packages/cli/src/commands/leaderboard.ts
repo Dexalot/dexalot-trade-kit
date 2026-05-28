@@ -1,4 +1,4 @@
-import type { ToolRunner } from "@dexalot-trade-kit/core";
+import type { ToolRunner } from "@dexalot/trade-core";
 import { printResult } from "../formatter.js";
 import type { CliValues } from "../parser.js";
 

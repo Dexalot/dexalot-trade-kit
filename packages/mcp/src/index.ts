@@ -12,8 +12,8 @@ import {
   MODULES,
   NETWORK_IDS,
   DEFAULT_MODULES,
-} from "@dexalot-trade-kit/core";
-import type { LogLevel, ClientId } from "@dexalot-trade-kit/core";
+} from "@dexalot/trade-core";
+import type { LogLevel, ClientId } from "@dexalot/trade-core";
 import { SERVER_NAME, SERVER_VERSION, GIT_HASH } from "./constants.js";
 import { createServer } from "./server.js";
 
@@ -143,7 +143,7 @@ export async function main(): Promise<void> {
     return;
   }
 
-  checkForUpdates("@dexalot-trade-kit/mcp", SERVER_VERSION);
+  checkForUpdates("@dexalot/trade-mcp", SERVER_VERSION);
 
   const cli = parseCli();
 

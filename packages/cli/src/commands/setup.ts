@@ -1,5 +1,5 @@
-import { runSetup, printSetupUsage, SUPPORTED_CLIENTS } from "@dexalot-trade-kit/core";
-import type { ClientId } from "@dexalot-trade-kit/core";
+import { runSetup, printSetupUsage, SUPPORTED_CLIENTS } from "@dexalot/trade-core";
+import type { ClientId } from "@dexalot/trade-core";
 import { errorLine } from "../formatter.js";
 
 export function handleSetupCommand(argv: string[]): void {

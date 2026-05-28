@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@dexalot-trade-kit/cli@0.1.0"
+        package: "@dexalot/trade-cli@0.1.0"
         bins: ["dexalot"]
         label: "Install dexalot CLI (npm)"
 ---
