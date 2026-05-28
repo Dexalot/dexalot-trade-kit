@@ -2,7 +2,7 @@
   "name": "dexalot-trade-kit",
   "owner": {
     "name": "Dexalot",
-    "url": "https://github.com/Dexalot"
+    "url": "https://github.com/dexalot"
   },
   "metadata": {
     "description": "Dexalot Trade Kit — agent skills and an MCP server for the Dexalot DEX.",
@@ -18,7 +18,7 @@
         "name": "Dexalot",
         "url": "https://dexalot.com"
       },
-      "homepage": "https://github.com/Dexalot/dexalot-trade-kit",
+      "homepage": "https://github.com/dexalot/dexalot-trade-kit",
       "license": "MIT",
       "category": "finance",
       "keywords": ["dexalot", "dex", "trading", "defi", "avalanche", "mcp"]
