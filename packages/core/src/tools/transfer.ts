@@ -286,6 +286,17 @@ export function registerTransferTools(): ToolSpec[] {
           },
           limit: { type: "number", description: "Maximum rows to return (mapped to SDK itemsperpage)." },
           offset: { type: "number", description: "Page number for pagination (mapped to SDK pageno)." },
+          // Legacy fields kept for backward-compat with callers that emitted
+          // the pre-SDK schema; the backend never honored these on this
+          // endpoint, so they are accepted-and-dropped here.
+          status: {
+            type: "string",
+            description: "Deprecated no-op. The backend never filtered transfers by status on this endpoint.",
+          },
+          type: {
+            type: "string",
+            description: "Deprecated no-op. The backend never filtered transfers by type on this endpoint.",
+          },
         },
         additionalProperties: false,
       },
