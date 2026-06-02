@@ -11,7 +11,7 @@ Cross-chain bridge ops (deposit/withdraw), gas management, P2P transfers, histor
 | `transfer_portfolio` ⚠ write | `dexalot transfer portfolio --token T --amount N --toAddress 0x...` | SDK `transferPortfolio` |
 | `transfer_get_deposit_bridge_fee` | `dexalot transfer get-deposit-bridge-fee --token T --amount N --sourceChain C` | SDK `getDepositBridgeFee` |
 | `transfer_get_token_details` | `dexalot transfer get-token-details --token T` | SDK `getTokenDetails` |
-| `transfer_get_combined_transfers` | `dexalot transfer get-combined-transfers` | SIGNED_API `GET transferscombined` |
+| `transfer_get_combined_transfers` | `dexalot transfer get-combined-transfers` | SDK `getCombinedTransfers` |
 
 **Notes:**
 - `add-gas` withdraws native ALOT from portfolio to wallet (raises gas balance for paying subnet fees). `remove-gas` is the reverse.

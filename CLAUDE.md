@@ -31,9 +31,9 @@ Dexalot's REST backend returns "Not allowed by CORS" when `Origin` is missing or
 
 **Use `@dexalot/dexalot-sdk` wherever it has a method; REST only for the gap. No duplicate REST re-implementations of SDK functionality.** `DexalotContractClient` wraps the SDK and initializes lazily on first use.
 
-SDK-routed: all `market` reads except oldest-candle-ts/app-settings/blacklist/deployed-contracts (i.e. pairs/tokens/environments/orderbook/candles via getClobPairs/getTokens/getEnvironments/getOrderBook/getCandles), all `clob.read` except get_orders_by_account, all `clob.write`, all `swap.*`, all `portfolio` balances, all `transfer` writes + bridge-fee + token-details, and revert decoding (`getRevertReason`).
+SDK-routed: all `market` reads except oldest-candle-ts/app-settings/blacklist (pairs/tokens/environments/orderbook/candles/deployed-contracts via getClobPairs/getTokens/getEnvironments/getOrderBook/getCandles/getDeployment), all `clob.read` (including get_orders_by_account via getOrderHistory), all `clob.write`, all `swap.*`, all `portfolio` balances + USD prices + price histories (via getTokenUsdPrices/getTokenPriceHistory/getTokenHourlyPriceHistory), all `transfer` writes + bridge-fee + token-details + combined-transfers (via getCombinedTransfers), and revert decoding (`getRevertReason`).
 
-REST-only (no SDK method — see ARCHITECTURE.md §5 table for the full list + reasons): `analytics`, `info`, `leaderboard`, `vaults`, `trader_history`, `pnl`, `rewards`, portfolio USD-prices/history/balance-proof, market oldest-candle-ts/app-settings/blacklist/deployed-contracts, clob get_orders_by_account, transfer get_combined_transfers.
+REST-only (no SDK method — see ARCHITECTURE.md §5 table for the full list + reasons): `analytics`, `info`, `leaderboard`, `vaults`, `trader_history`, `pnl`, `rewards`, market oldest-candle-ts/app-settings/blacklist, portfolio balance-proof.
 
 When adding a tool: **check the SDK surface first** (`grep getX node_modules/@dexalot/dexalot-sdk/dist/core/*.d.ts`). If the SDK has it, route through `contract.get()`; only use `client` (REST) if it doesn't, and add a one-line "REST: no SDK method" note.
 
@@ -87,7 +87,7 @@ DexalotMcpError
 pnpm install
 pnpm build                 # core → mcp → cli (order matters)
 pnpm typecheck             # tsc --noEmit across all 3 packages
-pnpm test:unit             # node --test via tsx; 151 tests today
+pnpm test:unit             # node --test via tsx; 171 tests today
 pnpm --filter @dexalot/trade-core test:unit    # one package
 ```
 
