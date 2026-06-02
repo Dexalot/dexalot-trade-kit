@@ -23,10 +23,12 @@ function stubClient(returnData: unknown): { recorded: RecordedCall[]; client: an
 
 /**
  * Stub the SDK-backed contract path for SDK-routed market tools
- * (get_pairs, get_tokens, get_environments, get_orderbook, get_candles).
+ * (get_pairs, get_tokens, get_environments, get_orderbook, get_candles,
+ * get_deployed_contracts).
  */
-function stubContract(returnData: unknown): { recorded: string[]; contract: any } {
+function stubContract(returnData: unknown): { recorded: string[]; contract: any; sdkArgs: any[] } {
   const recorded: string[] = [];
+  const sdkArgs: any[] = [];
   const sdk = {
     getClobPairs: async () => { recorded.push("getClobPairs"); return { success: true, data: returnData }; },
     getTokens: async () => { recorded.push("getTokens"); return { success: true, data: returnData }; },
@@ -36,9 +38,15 @@ function stubContract(returnData: unknown): { recorded: string[]; contract: any 
       recorded.push(`getCandles:${pair}:${interval}:${limit}`);
       return { success: true, data: returnData };
     },
+    getDeployment: async (opts?: { env?: string; contractType?: string; returnAbi?: boolean }) => {
+      recorded.push("getDeployment");
+      sdkArgs.push(opts);
+      return { success: true, data: returnData };
+    },
   };
   return {
     recorded,
+    sdkArgs,
     contract: {
       get: async () => sdk,
       unwrap: (r: { success: boolean; data?: unknown }) => r.data,
@@ -136,27 +144,31 @@ describe("market_get_orderbook (SDK)", () => {
   });
 });
 
-describe("market_get_deployed_contracts", () => {
+describe("market_get_deployed_contracts (SDK)", () => {
   const tool = registerMarketTools().find((t) => t.name === "market_get_deployed_contracts")!;
 
   it("falls back to config.parentEnv when env is not provided", async () => {
-    const { recorded, client } = stubClient([]);
-    await tool.handler({}, { config: BASE_CONFIG, client, contract: {} as any });
-    assert.equal((recorded[0]!.query as any).env, "production-multi-avax");
-    assert.equal((recorded[0]!.query as any).contracttype, "All");
-    assert.equal((recorded[0]!.query as any).returnabi, true);
+    const { recorded, sdkArgs, contract } = stubContract([]);
+    await tool.handler({}, { config: BASE_CONFIG, client: {} as any, contract });
+    assert.deepEqual(recorded, ["getDeployment"]);
+    assert.deepEqual(sdkArgs[0], {
+      env: "production-multi-avax",
+      contractType: "All",
+      returnAbi: true,
+    });
   });
 
-  it("honours explicit env / contracttype / returnabi", async () => {
-    const { recorded, client } = stubClient([]);
+  it("honours explicit env / contracttype / returnabi (trade-kit schema kept as-is)", async () => {
+    const { recorded, sdkArgs, contract } = stubContract([]);
     await tool.handler(
       { env: "fuji-multi-avax", contracttype: "Portfolio", returnabi: false },
-      { config: BASE_CONFIG, client, contract: {} as any },
+      { config: BASE_CONFIG, client: {} as any, contract },
     );
-    assert.deepEqual(recorded[0]!.query, {
+    assert.deepEqual(recorded, ["getDeployment"]);
+    assert.deepEqual(sdkArgs[0], {
       env: "fuji-multi-avax",
-      contracttype: "Portfolio",
-      returnabi: false,
+      contractType: "Portfolio",
+      returnAbi: false,
     });
   });
 });

@@ -17,12 +17,9 @@ import { ValidationError } from "../utils/errors.js";
  *
  *   SDK:  get_pairs (getClobPairs), get_tokens (getTokens),
  *         get_environments (getEnvironments), get_orderbook (getOrderBook),
- *         get_candles (getCandles)
+ *         get_candles (getCandles), get_deployed_contracts (getDeployment)
  *   REST: get_oldest_candle_ts, get_app_settings,
  *         get_blacklisted_addresses  — no SDK method exists
- *         get_deployed_contracts     — SDK getDeployment() takes no params
- *                                      (no env/contracttype/returnabi filter),
- *                                      so REST keeps the richer capability
  *
  * Source-of-truth for REST endpoint shapes: the Dexalot frontend's
  * `src/api/index.ts`.
@@ -182,16 +179,21 @@ export function registerMarketTools(): ToolSpec[] {
         },
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client, config }) => {
+      handler: async (rawArgs, { contract, config }) => {
         const args = asRecord(rawArgs);
+        // Trade-kit schema uses lowercase `contracttype`/`returnabi` for
+        // backward compat with the legacy REST query-param shape; the SDK
+        // wraps the same backend with camelCase opts (`contractType`,
+        // `returnAbi`). Translate here so existing consumers keep working.
         const env = readString(args, "env") ?? config.parentEnv;
-        const contracttype = readString(args, "contracttype") ?? "All";
-        const returnabi = readBoolean(args, "returnabi") ?? true;
-        return client.tradeGet(
-          "deployment/params",
-          { env, contracttype, returnabi },
-          publicRateLimit("market_get_deployed_contracts", 3),
+        const contractType = readString(args, "contracttype") ?? "All";
+        const returnAbi = readBoolean(args, "returnabi") ?? true;
+        const sdk = await contract.get();
+        const data = contract.unwrap(
+          await sdk.getDeployment({ env, contractType, returnAbi }),
+          "market.getDeployment",
         );
+        return { endpoint: "SDK getDeployment", requestTime: new Date().toISOString(), data };
       },
     },
 
