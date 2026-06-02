@@ -99,11 +99,12 @@ The CLI gets the same `ToolSpec[]` via `createToolRunner` and translates `dexalo
 | `market_get_tokens` | `getTokens` |
 | `market_get_environments` | `getEnvironments` |
 | `market_get_orderbook` | `getOrderBook` |
+| `market_get_candles` | `getCandles` |
 | `clob_get_open_orders` | `getOpenOrders` |
 | `clob_get_order` | `getOrder` |
 | `clob_get_order_by_client_id` | `getOrderByClientId` |
-| all 9 `clob.write` | `addOrder` / `addOrderList` / `cancelOrder` / … |
-| `swap_get_pairs` / `get_quote` / `get_firm_quote` / `execute` | `getSwapPairs` / `getSwapQuote` / `getSwapFirmQuote` / `executeRFQSwap` |
+| all 9 `clob.write` | `addOrder` / `addLimitOrderList` / `cancelOrder` / … |
+| `swap_get_pairs` / `get_quote` / `get_firm_quote` / `execute` | `getSwapPairs` / `getSwapSoftQuote` / `getSwapFirmQuote` / `executeRFQSwap` |
 | `portfolio_get_balance` / `get_all_balances` / `get_chain_balance(s)` / `get_all_chain_balances` | `getPortfolioBalance` / … |
 | all transfer writes + `get_deposit_bridge_fee` + `get_token_details` | `deposit` / `withdraw` / `addGas` / `removeGas` / `transferPortfolio` / … |
 | revert-reason decoding | `getRevertReason` |
@@ -112,7 +113,7 @@ The CLI gets the same `ToolSpec[]` via `createToolRunner` and translates `dexalo
 
 | Tools | Why REST |
 |---|---|
-| `market_get_candles`, `market_get_oldest_candle_ts`, `market_get_app_settings`, `market_get_blacklisted_addresses` | no SDK method |
+| `market_get_oldest_candle_ts`, `market_get_app_settings`, `market_get_blacklisted_addresses` | no SDK method |
 | `market_get_deployed_contracts` | SDK `getDeployment()` takes no params (no env/contracttype/returnabi filter) — REST keeps the richer capability |
 | `clob_get_orders_by_account` | SDK only does open orders + single-order reads, not full paginated history |
 | `portfolio_get_token_usd_prices`, `…_price_history`, `…_hourly_price_history`, `get_balance_proof` | no SDK method |
