@@ -68,6 +68,10 @@ function stub(): { recorded: Recorded[]; client: any; contract: any } {
           recorded.push({ method: "sdk.getTokenDetails", args });
           return { success: true, data: { decimals: 6 } };
         },
+        getCombinedTransfers: async (...args: unknown[]) => {
+          recorded.push({ method: "sdk.getCombinedTransfers", args });
+          return { success: true, data: [] };
+        },
       }),
       unwrap: (r: { success: boolean; data?: unknown }) => r.data,
     },
@@ -199,21 +203,43 @@ describe("transfer_deposit", () => {
   });
 });
 
-describe("transfer_get_combined_transfers", () => {
+describe("transfer_get_combined_transfers (SDK)", () => {
   const tool = registerTransferTools().find((t) => t.name === "transfer_get_combined_transfers")!;
-  it("hits signed/transferscombined with no query when no filters", async () => {
+
+  it("routes through SDK getCombinedTransfers with no opts when no filters", async () => {
     const { recorded, client, contract } = stub();
     await tool.handler({}, { config: BASE_CONFIG, client, contract });
-    assert.equal(recorded[0]!.method, "signedGet");
-    assert.equal(recorded[0]!.path, "transferscombined");
-    assert.equal(recorded[0]!.query, undefined);
+    assert.equal(recorded[0]!.method, "sdk.getCombinedTransfers");
+    assert.deepEqual(recorded[0]!.args, [undefined]);
   });
-  it("forwards type + status + pagination", async () => {
+
+  it("maps trade-kit limit/offset to SDK itemsperpage/pageno", async () => {
+    const { recorded, client, contract } = stub();
+    await tool.handler({ limit: 10, offset: 0 }, { config: BASE_CONFIG, client, contract });
+    assert.equal(recorded[0]!.method, "sdk.getCombinedTransfers");
+    assert.deepEqual(recorded[0]!.args, [{ itemsperpage: 10, pageno: 0 }]);
+  });
+
+  it("forwards symbol + periodfrom + periodto when provided", async () => {
     const { recorded, client, contract } = stub();
     await tool.handler(
-      { type: "DEPOSIT", status: "COMPLETED", limit: 10, offset: 0 },
+      { symbol: "USDC", periodfrom: "2026-01-01", periodto: "2026-06-01" },
       { config: BASE_CONFIG, client, contract },
     );
-    assert.deepEqual(recorded[0]!.query, { status: "COMPLETED", type: "DEPOSIT", limit: 10, offset: 0 });
+    assert.deepEqual(recorded[0]!.args, [{
+      symbol: "USDC",
+      periodfrom: "2026-01-01",
+      periodto: "2026-06-01",
+    }]);
+  });
+
+  it("preserves backward-compat status/type by silently dropping them (backend never honored them anyway)", async () => {
+    const { recorded, client, contract } = stub();
+    await tool.handler(
+      { type: "DEPOSIT", status: "COMPLETED", limit: 10 },
+      { config: BASE_CONFIG, client, contract },
+    );
+    // only itemsperpage survives; status/type are dropped at the boundary
+    assert.deepEqual(recorded[0]!.args, [{ itemsperpage: 10 }]);
   });
 });
