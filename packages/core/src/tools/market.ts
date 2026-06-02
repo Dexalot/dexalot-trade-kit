@@ -7,6 +7,7 @@ import {
 } from "./helpers.js";
 import { publicRateLimit } from "./common.js";
 import type { ToolSpec } from "./types.js";
+import { ValidationError } from "../utils/errors.js";
 
 /**
  * Market data tools.
@@ -15,8 +16,9 @@ import type { ToolSpec } from "./types.js";
  * method, fall back to REST only for endpoints the SDK doesn't expose):
  *
  *   SDK:  get_pairs (getClobPairs), get_tokens (getTokens),
- *         get_environments (getEnvironments), get_orderbook (getOrderBook)
- *   REST: get_candles, get_oldest_candle_ts, get_app_settings,
+ *         get_environments (getEnvironments), get_orderbook (getOrderBook),
+ *         get_candles (getCandles)
+ *   REST: get_oldest_candle_ts, get_app_settings,
  *         get_blacklisted_addresses  — no SDK method exists
  *         get_deployed_contracts     — SDK getDeployment() takes no params
  *                                      (no env/contracttype/returnabi filter),
@@ -25,6 +27,52 @@ import type { ToolSpec } from "./types.js";
  * Source-of-truth for REST endpoint shapes: the Dexalot frontend's
  * `src/api/index.ts`.
  */
+
+/**
+ * Map a (intervalnum, intervalstr) tuple — the trade-kit's public input shape
+ * (mirrors the legacy REST /candlechart/params signature) — onto the SDK's
+ * compact interval string. The SDK accepts exactly these seven values; any
+ * other combination is rejected here with a clear ValidationError instead of
+ * being silently forwarded.
+ */
+const CANDLE_INTERVAL_MAP: Record<string, { sdk: string; seconds: number }> = {
+  "1:minutes": { sdk: "1m", seconds: 60 },
+  "5:minutes": { sdk: "5m", seconds: 5 * 60 },
+  "15:minutes": { sdk: "15m", seconds: 15 * 60 },
+  "30:minutes": { sdk: "30m", seconds: 30 * 60 },
+  "1:hours": { sdk: "1h", seconds: 60 * 60 },
+  "4:hours": { sdk: "4h", seconds: 4 * 60 * 60 },
+  "1:day": { sdk: "1d", seconds: 24 * 60 * 60 },
+};
+
+/** SDK's hard ceiling on the `limit` argument to getCandles (see clob.ts). */
+const SDK_CANDLE_LIMIT_MAX = 500;
+
+function resolveCandleInterval(intervalnum: number, intervalstr: string): { sdk: string; seconds: number } {
+  const key = `${intervalnum}:${intervalstr}`;
+  const spec = CANDLE_INTERVAL_MAP[key];
+  if (!spec) {
+    const allowed = Object.keys(CANDLE_INTERVAL_MAP).join(", ");
+    throw new ValidationError(
+      `Unsupported candle interval (${intervalnum}, "${intervalstr}"). Allowed (intervalnum:intervalstr): ${allowed}.`,
+    );
+  }
+  return spec;
+}
+
+function computeCandleLimit(periodfrom: string, periodto: string, intervalSeconds: number): number {
+  const fromMs = Date.parse(periodfrom);
+  const toMs = Date.parse(periodto);
+  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs)) {
+    throw new ValidationError(
+      "Could not parse periodfrom/periodto as dates. Use ISO 8601 ('YYYY-MM-DDTHH:MM:SSZ') or 'YYYY-MM-DD'.",
+    );
+  }
+  const rangeSec = Math.max(0, (toMs - fromMs) / 1000);
+  const raw = Math.ceil(rangeSec / intervalSeconds);
+  // Clamp to [1, SDK_CANDLE_LIMIT_MAX]. The SDK rejects 0 or values > 500.
+  return Math.min(SDK_CANDLE_LIMIT_MAX, Math.max(1, raw));
+}
 
 const PAIR_PROP = {
   type: "string" as const,
@@ -167,7 +215,7 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_candles",
       module: "market",
       description:
-        "Fetch historical OHLCV candles for a pair over a time range. Granularity is set by (intervalnum, intervalstr): e.g. (1,'minutes'), (5,'minutes'), (1,'hours'), (4,'hours'), (1,'day'). Returns one entry per candle with open/high/low/close/volume.",
+        "Fetch historical OHLCV candles for a pair over a time range. Granularity is set by (intervalnum, intervalstr): one of (1,'minutes'), (5,'minutes'), (15,'minutes'), (30,'minutes'), (1,'hours'), (4,'hours'), (1,'day'). Routes through the SDK's getCandles (count-back endpoint, cap 500 candles). Returns one entry per candle with open/high/low/close/volume.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -183,7 +231,7 @@ export function registerMarketTools(): ToolSpec[] {
           },
           intervalnum: {
             type: "number",
-            description: "Numeric interval (e.g. 1, 5, 15, 30, 1, 4).",
+            description: "Numeric interval (1, 5, 15, 30 with 'minutes'; 1, 4 with 'hours'; 1 with 'day').",
           },
           intervalstr: {
             type: "string",
@@ -194,16 +242,21 @@ export function registerMarketTools(): ToolSpec[] {
         required: ["pair", "periodfrom", "periodto", "intervalnum", "intervalstr"],
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client }) => {
+      handler: async (rawArgs, { contract }) => {
         const args = asRecord(rawArgs);
-        const params = {
-          pair: requireString(args, "pair"),
-          periodfrom: requireString(args, "periodfrom"),
-          periodto: requireString(args, "periodto"),
-          intervalnum: readNumber(args, "intervalnum")!,
-          intervalstr: requireString(args, "intervalstr"),
-        };
-        return client.tradeGet("candlechart/params", params, publicRateLimit("market_get_candles", 5));
+        const pair = requireString(args, "pair");
+        const periodfrom = requireString(args, "periodfrom");
+        const periodto = requireString(args, "periodto");
+        const intervalnum = readNumber(args, "intervalnum")!;
+        const intervalstr = requireString(args, "intervalstr");
+        const intervalSpec = resolveCandleInterval(intervalnum, intervalstr);
+        const limit = computeCandleLimit(periodfrom, periodto, intervalSpec.seconds);
+        const sdk = await contract.get();
+        const data = contract.unwrap(
+          await sdk.getCandles(pair, intervalSpec.sdk, limit),
+          "market.getCandles",
+        );
+        return { endpoint: "SDK getCandles", requestTime: new Date().toISOString(), data };
       },
     },
 
