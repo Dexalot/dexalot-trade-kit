@@ -28,8 +28,8 @@ function stub(): { recorded: Recorded[]; client: any; contract: any } {
           recorded.push({ method: "sdk.getSwapPairs", args });
           return { success: true, data: [] };
         },
-        getSwapQuote: async (...args: unknown[]) => {
-          recorded.push({ method: "sdk.getSwapQuote", args });
+        getSwapSoftQuote: async (...args: unknown[]) => {
+          recorded.push({ method: "sdk.getSwapSoftQuote", args });
           return { success: true, data: { price: 1 } };
         },
         getSwapFirmQuote: async (...args: unknown[]) => {
@@ -128,19 +128,20 @@ describe("swap_get_pairs", () => {
 
 describe("swap_get_quote", () => {
   const tool = registerSwapTools().find((t) => t.name === "swap_get_quote")!;
-  it("defaults firm=false", async () => {
+  it("routes through getSwapSoftQuote when firm=false (default)", async () => {
     const { recorded, client, contract } = stub();
     await tool.handler({ fromToken: "USDC", toToken: "AVAX", amount: 100 }, { config: BASE_CONFIG, client, contract });
-    assert.equal(recorded[0]!.method, "sdk.getSwapQuote");
-    assert.deepEqual(recorded[0]!.args, ["USDC", "AVAX", 100, false, undefined]);
+    assert.equal(recorded[0]!.method, "sdk.getSwapSoftQuote");
+    assert.deepEqual(recorded[0]!.args, ["USDC", "AVAX", 100, undefined]);
   });
-  it("passes firm=true and chainId", async () => {
+  it("routes through getSwapFirmQuote when firm=true; forwards chainId", async () => {
     const { recorded, client, contract } = stub();
     await tool.handler(
       { fromToken: "USDC", toToken: "AVAX", amount: 100, firm: true, chainId: 43114 },
       { config: BASE_CONFIG, client, contract },
     );
-    assert.deepEqual(recorded[0]!.args, ["USDC", "AVAX", 100, true, 43114]);
+    assert.equal(recorded[0]!.method, "sdk.getSwapFirmQuote");
+    assert.deepEqual(recorded[0]!.args, ["USDC", "AVAX", 100, 43114]);
   });
 });
 
