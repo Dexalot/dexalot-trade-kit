@@ -72,6 +72,10 @@ function stub(): { recorded: Recorded[]; client: any; contract: any } {
           recorded.push({ method: "sdk.getOrder", args });
           return { success: true, data: { id: args[0], status: "NEW" } };
         },
+        getOrderHistory: async (...args: unknown[]) => {
+          recorded.push({ method: "sdk.getOrderHistory", args });
+          return { success: true, data: [] };
+        },
       }),
       unwrap: (r: { success: boolean; data?: unknown }) => r.data,
     },
@@ -131,6 +135,41 @@ describe("clob_get_open_orders (SDK)", () => {
     await tool.handler({ pair: "ALOT/USDC" }, { config: BASE_CONFIG, client, contract });
     assert.equal(recorded[0]!.method, "sdk.getOpenOrders");
     assert.deepEqual(recorded[0]!.args, ["ALOT/USDC"]);
+  });
+});
+
+describe("clob_get_orders_by_account (SDK)", () => {
+  const tool = registerClobReadTools().find((t) => t.name === "clob_get_orders_by_account")!;
+
+  it("routes through SDK getOrderHistory with no opts when no filters", async () => {
+    const { recorded, client, contract } = stub();
+    await tool.handler({}, { config: BASE_CONFIG, client, contract });
+    assert.equal(recorded[0]!.method, "sdk.getOrderHistory");
+    // signature is (account?, opts?); both undefined when no filters
+    assert.deepEqual(recorded[0]!.args, [undefined, undefined]);
+  });
+
+  it("forwards pair / status / limit / offset to the SDK opts object", async () => {
+    const { recorded, client, contract } = stub();
+    await tool.handler(
+      { pair: "ALOT/USDC", status: "FILLED", limit: 50, offset: 100 },
+      { config: BASE_CONFIG, client, contract },
+    );
+    assert.equal(recorded[0]!.method, "sdk.getOrderHistory");
+    assert.deepEqual(recorded[0]!.args, [undefined, { pair: "ALOT/USDC", status: "FILLED", limit: 50, offset: 100 }]);
+  });
+
+  it("requires a wallet", async () => {
+    const { client } = stub();
+    const noWalletContract = {
+      requireWallet: () => { throw new Error("wallet required"); },
+      get: async () => ({}),
+      unwrap: (r: any) => r.data,
+    };
+    await assert.rejects(
+      tool.handler({}, { config: BASE_CONFIG, client, contract: noWalletContract }),
+      /wallet/i,
+    );
   });
 });
 

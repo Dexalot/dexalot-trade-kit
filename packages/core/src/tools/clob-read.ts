@@ -4,7 +4,6 @@ import {
   readNumber,
   requireString,
 } from "./helpers.js";
-import { signedRateLimit } from "./common.js";
 import type { ToolSpec } from "./types.js";
 
 /**
@@ -12,10 +11,9 @@ import type { ToolSpec } from "./types.js";
  *
  * Routing (SDK-first):
  *   SDK:  get_open_orders (getOpenOrders), get_order (getOrder by id),
- *         get_order_by_client_id (getOrderByClientId)
- *   REST: get_orders_by_account — full historical order list (any status,
- *         paginated). The SDK only exposes open orders + single-order reads,
- *         so account history has no SDK equivalent and stays on signed REST.
+ *         get_order_by_client_id (getOrderByClientId),
+ *         get_orders_by_account (getOrderHistory — paginated historical order list,
+ *         any status, signed)
  */
 
 const PAIR_PROP = {
@@ -77,22 +75,25 @@ export function registerClobReadTools(): ToolSpec[] {
         },
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client }) => {
+      handler: async (rawArgs, { contract }) => {
         const args = asRecord(rawArgs);
-        const params: Record<string, string | number> = {};
+        contract.requireWallet();
+        const sdk = await contract.get();
+        const opts: { pair?: string; status?: string; limit?: number; offset?: number } = {};
         const pair = readString(args, "pair");
         const status = readString(args, "status");
         const limit = readNumber(args, "limit");
         const offset = readNumber(args, "offset");
-        if (pair) params.pair = pair;
-        if (status) params.status = status;
-        if (limit !== undefined) params.limit = limit;
-        if (offset !== undefined) params.offset = offset;
-        return client.signedGet(
-          "orders",
-          Object.keys(params).length > 0 ? params : undefined,
-          signedRateLimit("clob_get_orders_by_account", 5),
+        if (pair) opts.pair = pair;
+        if (status) opts.status = status;
+        if (limit !== undefined) opts.limit = limit;
+        if (offset !== undefined) opts.offset = offset;
+        // Pass `undefined` for account so the SDK uses the connected signer.
+        const data = contract.unwrap(
+          await sdk.getOrderHistory(undefined, Object.keys(opts).length > 0 ? opts : undefined),
+          "clob.getOrderHistory",
         );
+        return { endpoint: "SDK getOrderHistory", requestTime: new Date().toISOString(), data };
       },
     },
 
