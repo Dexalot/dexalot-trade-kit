@@ -48,6 +48,18 @@ function stub(): { recorded: Recorded[]; client: any; contract: any } {
           recorded.push({ method: "sdk.getAllChainWalletBalances", args });
           return { success: true, data: {} };
         },
+        getTokenUsdPrices: async (...args: unknown[]) => {
+          recorded.push({ method: "sdk.getTokenUsdPrices", args });
+          return { success: true, data: { ALOT: 0.04, USDC: 1 } };
+        },
+        getTokenPriceHistory: async (...args: unknown[]) => {
+          recorded.push({ method: "sdk.getTokenPriceHistory", args });
+          return { success: true, data: [{ timestamp: 1717200000, price: 0.04 }] };
+        },
+        getTokenHourlyPriceHistory: async (...args: unknown[]) => {
+          recorded.push({ method: "sdk.getTokenHourlyPriceHistory", args });
+          return { success: true, data: [{ timestamp: 1717200000, price: 0.04 }] };
+        },
       }),
       unwrap: (r: { success: boolean; data?: unknown }) => r.data,
     },
@@ -83,24 +95,54 @@ describe("portfolio tool registry", () => {
   });
 });
 
-describe("portfolio REST tools", () => {
-  it("get_token_usd_prices hits info/usd-prices", async () => {
+describe("portfolio SDK price tools", () => {
+  it("get_token_usd_prices routes through SDK getTokenUsdPrices, forwarding parentEnv", async () => {
     const tool = registerPortfolioTools().find((t) => t.name === "portfolio_get_token_usd_prices")!;
     const { recorded, client, contract } = stub();
-    await tool.handler({}, { config: BASE_CONFIG, client, contract });
-    assert.equal(recorded[0]!.method, "infoGet");
-    assert.equal(recorded[0]!.path, "usd-prices");
+    const res = await tool.handler({}, { config: BASE_CONFIG, client, contract });
+    assert.equal(recorded[0]!.method, "sdk.getTokenUsdPrices");
+    assert.deepEqual(recorded[0]!.args, ["production-multi-avax"]);
+    assert.deepEqual((res as any).data, { ALOT: 0.04, USDC: 1 });
   });
 
-  it("get_token_usd_price_history forwards token param", async () => {
+  it("get_token_usd_price_history routes through SDK getTokenPriceHistory with token arg", async () => {
     const tool = registerPortfolioTools().find((t) => t.name === "portfolio_get_token_usd_price_history")!;
     const { recorded, client, contract } = stub();
     await tool.handler({ token: "ALOT" }, { config: BASE_CONFIG, client, contract });
-    assert.equal(recorded[0]!.method, "infoGet");
-    assert.equal(recorded[0]!.path, "token-usd-price-history");
-    assert.deepEqual(recorded[0]!.query, { token: "ALOT" });
+    assert.equal(recorded[0]!.method, "sdk.getTokenPriceHistory");
+    // signature: (token, opts?) - opts is undefined when no from/to provided
+    assert.deepEqual(recorded[0]!.args, ["ALOT", undefined]);
   });
 
+  it("get_token_usd_price_history forwards from/to opts when provided", async () => {
+    const tool = registerPortfolioTools().find((t) => t.name === "portfolio_get_token_usd_price_history")!;
+    const { recorded, client, contract } = stub();
+    await tool.handler(
+      { token: "ALOT", from: 1717200000, to: 1717286400 },
+      { config: BASE_CONFIG, client, contract },
+    );
+    assert.deepEqual(recorded[0]!.args, ["ALOT", { from: 1717200000, to: 1717286400 }]);
+  });
+
+  it("get_token_hourly_usd_price_history routes through SDK getTokenHourlyPriceHistory", async () => {
+    const tool = registerPortfolioTools().find((t) => t.name === "portfolio_get_token_hourly_usd_price_history")!;
+    const { recorded, client, contract } = stub();
+    await tool.handler({ token: "ALOT" }, { config: BASE_CONFIG, client, contract });
+    assert.equal(recorded[0]!.method, "sdk.getTokenHourlyPriceHistory");
+    assert.deepEqual(recorded[0]!.args, ["ALOT", undefined]);
+  });
+
+  it("get_token_usd_price_history requires token", async () => {
+    const tool = registerPortfolioTools().find((t) => t.name === "portfolio_get_token_usd_price_history")!;
+    const { client, contract } = stub();
+    await assert.rejects(
+      tool.handler({}, { config: BASE_CONFIG, client, contract }),
+      /token/i,
+    );
+  });
+});
+
+describe("portfolio REST tools (signed)", () => {
   it("get_balance_proof requires symbol", async () => {
     const tool = registerPortfolioTools().find((t) => t.name === "portfolio_get_balance_proof")!;
     const { client, contract } = stub();
