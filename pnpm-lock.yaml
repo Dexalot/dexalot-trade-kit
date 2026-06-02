@@ -33,8 +33,8 @@ importers:
   packages/cli:
     dependencies:
       '@dexalot/dexalot-sdk':
-        specifier: ^0.5.17
-        version: 0.5.17
+        specifier: ^0.5.18
+        version: 0.5.18
       ethers:
         specifier: ^6.16.0
         version: 6.16.0
@@ -98,8 +98,8 @@ importers:
   packages/mcp:
     dependencies:
       '@dexalot/dexalot-sdk':
-        specifier: ^0.5.17
-        version: 0.5.17
+        specifier: ^0.5.18
+        version: 0.5.18
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
         version: 1.29.0(zod@4.4.3)
@@ -137,9 +137,6 @@ packages:
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
-
-  '@dexalot/dexalot-sdk@0.5.17':
-    resolution: {integrity: sha512-v6BtZSy+8gOx2ozldYh5VElSlvNZXLOAe1t79OkcoQygomhgjxlhTwJ0Ft6eoXZz1FsgWzOJjxsCjflPtI6dSQ==}
 
   '@dexalot/dexalot-sdk@0.5.18':
     resolution: {integrity: sha512-skHJDULafI5Lb18pzdbDhfL3Hz6kh9FpuBA3vDRH3u1NhMX4auZKUffsF8xrVwlxQRaGqWm8HdDM4GIGDaMF1A==}
@@ -690,9 +687,6 @@ packages:
 
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
-
-  axios@1.14.0:
-    resolution: {integrity: sha512-3Y8yrqLSwjuzpXuZ0oIYZ/XGgLwUIBU3uLvbcpb0pidD9ctpShJd43KSlEEkVQg6DS0G9NKyzOvBfUtDKEyHvQ==}
 
   axios@1.16.1:
     resolution: {integrity: sha512-caYkukvroVPO8KrzuJEb50Hm07KwfBZPEC3VeFHTsqWHvKTsy54hjJz9BS/cdaypROE2rH6xvm9mHX4fgWkr3A==}
@@ -1514,17 +1508,6 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@dexalot/dexalot-sdk@0.5.17':
-    dependencies:
-      axios: 1.14.0
-      dotenv: 16.6.1
-      ethers: 6.16.0
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - utf-8-validate
-
   '@dexalot/dexalot-sdk@0.5.18':
     dependencies:
       axios: 1.16.1
@@ -1880,14 +1863,6 @@ snapshots:
   any-promise@1.3.0: {}
 
   asynckit@0.4.0: {}
-
-  axios@1.14.0:
-    dependencies:
-      follow-redirects: 1.16.0
-      form-data: 4.0.5
-      proxy-from-env: 2.1.0
-    transitivePeerDependencies:
-      - debug
 
   axios@1.16.1:
     dependencies:

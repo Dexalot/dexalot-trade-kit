@@ -23,7 +23,7 @@ function stubClient(returnData: unknown): { recorded: RecordedCall[]; client: an
 
 /**
  * Stub the SDK-backed contract path for SDK-routed market tools
- * (get_pairs, get_tokens, get_environments, get_orderbook).
+ * (get_pairs, get_tokens, get_environments, get_orderbook, get_candles).
  */
 function stubContract(returnData: unknown): { recorded: string[]; contract: any } {
   const recorded: string[] = [];
@@ -32,6 +32,10 @@ function stubContract(returnData: unknown): { recorded: string[]; contract: any 
     getTokens: async () => { recorded.push("getTokens"); return { success: true, data: returnData }; },
     getEnvironments: async () => { recorded.push("getEnvironments"); return { success: true, data: returnData }; },
     getOrderBook: async (pair: string) => { recorded.push(`getOrderBook:${pair}`); return { success: true, data: returnData }; },
+    getCandles: async (pair: string, interval: string, limit: number) => {
+      recorded.push(`getCandles:${pair}:${interval}:${limit}`);
+      return { success: true, data: returnData };
+    },
   };
   return {
     recorded,
@@ -157,39 +161,193 @@ describe("market_get_deployed_contracts", () => {
   });
 });
 
-describe("market_get_candles", () => {
+describe("market_get_candles (SDK)", () => {
   const tool = registerMarketTools().find((t) => t.name === "market_get_candles")!;
 
-  it("forwards all required params verbatim to /candlechart/params", async () => {
-    const { recorded, client } = stubClient([]);
+  it("routes through SDK getCandles, translating (intervalnum, intervalstr) -> SDK interval", async () => {
+    const { recorded, contract } = stubContract([{ open: 1, high: 2, low: 0.5, close: 1.5, volume: 100 }]);
+    const result = await tool.handler(
+      {
+        pair: "ALOT/USDC",
+        periodfrom: "2026-05-24T00:00:00Z",
+        periodto: "2026-05-25T00:00:00Z",
+        intervalnum: 1,
+        intervalstr: "hours",
+      },
+      { config: BASE_CONFIG, client: {} as any, contract },
+    );
+    // 24-hour window at 1h interval -> 24 candles
+    assert.deepEqual(recorded, ["getCandles:ALOT/USDC:1h:24"]);
+    assert.deepEqual((result as any).data, [{ open: 1, high: 2, low: 0.5, close: 1.5, volume: 100 }]);
+  });
+
+  it("translates (1,'minutes') -> '1m'", async () => {
+    const { recorded, contract } = stubContract([]);
+    await tool.handler(
+      {
+        pair: "ALOT/USDC",
+        periodfrom: "2026-05-24T00:00:00Z",
+        periodto: "2026-05-24T00:10:00Z",
+        intervalnum: 1,
+        intervalstr: "minutes",
+      },
+      { config: BASE_CONFIG, client: {} as any, contract },
+    );
+    // 10-minute window at 1m interval -> 10 candles
+    assert.deepEqual(recorded, ["getCandles:ALOT/USDC:1m:10"]);
+  });
+
+  it("translates (5,'minutes') -> '5m'", async () => {
+    const { recorded, contract } = stubContract([]);
+    await tool.handler(
+      {
+        pair: "ALOT/USDC",
+        periodfrom: "2026-05-24T00:00:00Z",
+        periodto: "2026-05-24T01:00:00Z",
+        intervalnum: 5,
+        intervalstr: "minutes",
+      },
+      { config: BASE_CONFIG, client: {} as any, contract },
+    );
+    // 60-minute window at 5m interval -> 12 candles
+    assert.deepEqual(recorded, ["getCandles:ALOT/USDC:5m:12"]);
+  });
+
+  it("translates (15,'minutes') -> '15m'", async () => {
+    const { recorded, contract } = stubContract([]);
+    await tool.handler(
+      {
+        pair: "ALOT/USDC",
+        periodfrom: "2026-05-24T00:00:00Z",
+        periodto: "2026-05-24T01:00:00Z",
+        intervalnum: 15,
+        intervalstr: "minutes",
+      },
+      { config: BASE_CONFIG, client: {} as any, contract },
+    );
+    // 60-minute window at 15m interval -> 4 candles
+    assert.deepEqual(recorded, ["getCandles:ALOT/USDC:15m:4"]);
+  });
+
+  it("translates (30,'minutes') -> '30m'", async () => {
+    const { recorded, contract } = stubContract([]);
+    await tool.handler(
+      {
+        pair: "ALOT/USDC",
+        periodfrom: "2026-05-24T00:00:00Z",
+        periodto: "2026-05-24T02:00:00Z",
+        intervalnum: 30,
+        intervalstr: "minutes",
+      },
+      { config: BASE_CONFIG, client: {} as any, contract },
+    );
+    // 120-minute window at 30m interval -> 4 candles
+    assert.deepEqual(recorded, ["getCandles:ALOT/USDC:30m:4"]);
+  });
+
+  it("translates (4,'hours') -> '4h'", async () => {
+    const { recorded, contract } = stubContract([]);
+    await tool.handler(
+      {
+        pair: "ALOT/USDC",
+        periodfrom: "2026-05-24T00:00:00Z",
+        periodto: "2026-05-25T00:00:00Z",
+        intervalnum: 4,
+        intervalstr: "hours",
+      },
+      { config: BASE_CONFIG, client: {} as any, contract },
+    );
+    // 24-hour window at 4h interval -> 6 candles
+    assert.deepEqual(recorded, ["getCandles:ALOT/USDC:4h:6"]);
+  });
+
+  it("translates (1,'day') -> '1d'", async () => {
+    const { recorded, contract } = stubContract([]);
     await tool.handler(
       {
         pair: "ALOT/USDC",
         periodfrom: "2026-05-24",
-        periodto: "2026-05-25",
-        intervalnum: "1",  // string — should coerce
+        periodto: "2026-05-31",
+        intervalnum: 1,
+        intervalstr: "day",
+      },
+      { config: BASE_CONFIG, client: {} as any, contract },
+    );
+    // 7-day window at 1d interval -> 7 candles
+    assert.deepEqual(recorded, ["getCandles:ALOT/USDC:1d:7"]);
+  });
+
+  it("coerces numeric strings for intervalnum (LLMs may pass '1' instead of 1)", async () => {
+    const { recorded, contract } = stubContract([]);
+    await tool.handler(
+      {
+        pair: "ALOT/USDC",
+        periodfrom: "2026-05-24T00:00:00Z",
+        periodto: "2026-05-25T00:00:00Z",
+        intervalnum: "1",
         intervalstr: "hours",
       },
-      { config: BASE_CONFIG, client, contract: {} as any },
+      { config: BASE_CONFIG, client: {} as any, contract },
     );
-    assert.equal(recorded[0]!.path, "candlechart/params");
-    assert.deepEqual(recorded[0]!.query, {
-      pair: "ALOT/USDC",
-      periodfrom: "2026-05-24",
-      periodto: "2026-05-25",
-      intervalnum: 1,
-      intervalstr: "hours",
-    });
+    assert.deepEqual(recorded, ["getCandles:ALOT/USDC:1h:24"]);
+  });
+
+  it("caps the computed limit at the SDK's 500-candle ceiling", async () => {
+    const { recorded, contract } = stubContract([]);
+    await tool.handler(
+      {
+        pair: "ALOT/USDC",
+        periodfrom: "2026-05-01T00:00:00Z",
+        periodto: "2026-05-31T00:00:00Z",
+        intervalnum: 1,
+        intervalstr: "minutes",
+      },
+      { config: BASE_CONFIG, client: {} as any, contract },
+    );
+    // 30 days * 1440 minutes = 43200 -> capped to 500
+    assert.deepEqual(recorded, ["getCandles:ALOT/USDC:1m:500"]);
+  });
+
+  it("ensures limit is at least 1 even for zero/negative ranges", async () => {
+    const { recorded, contract } = stubContract([]);
+    await tool.handler(
+      {
+        pair: "ALOT/USDC",
+        periodfrom: "2026-05-24T00:00:00Z",
+        periodto: "2026-05-24T00:00:00Z",
+        intervalnum: 1,
+        intervalstr: "hours",
+      },
+      { config: BASE_CONFIG, client: {} as any, contract },
+    );
+    assert.deepEqual(recorded, ["getCandles:ALOT/USDC:1h:1"]);
   });
 
   it("rejects missing required pair", async () => {
-    const { client } = stubClient([]);
+    const { contract } = stubContract([]);
     await assert.rejects(
       tool.handler(
         { periodfrom: "2026-05-24", periodto: "2026-05-25", intervalnum: 1, intervalstr: "hours" },
-        { config: BASE_CONFIG, client, contract: {} as any },
+        { config: BASE_CONFIG, client: {} as any, contract },
       ),
       /pair/i,
+    );
+  });
+
+  it("rejects an unsupported (intervalnum, intervalstr) combination", async () => {
+    const { contract } = stubContract([]);
+    await assert.rejects(
+      tool.handler(
+        {
+          pair: "ALOT/USDC",
+          periodfrom: "2026-05-24",
+          periodto: "2026-05-25",
+          intervalnum: 7,
+          intervalstr: "minutes",
+        },
+        { config: BASE_CONFIG, client: {} as any, contract },
+      ),
+      /interval/i,
     );
   });
 });
