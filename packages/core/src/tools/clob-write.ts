@@ -133,9 +133,9 @@ export function registerClobWriteTools(): ToolSpec[] {
         }
         const orders = ordersRaw.map((o) => buildOrderRequest(asRecord(o)));
         const wait = readBoolean(args, "waitForReceipt") ?? true;
-        const result = await sdk.addOrderList(orders, wait);
-        const data = contract.unwrap(result, "clob.addOrderList");
-        return { endpoint: "SDK addOrderList", requestTime: new Date().toISOString(), data };
+        const result = await sdk.addLimitOrderList(orders, wait);
+        const data = contract.unwrap(result, "clob.addLimitOrderList");
+        return { endpoint: "SDK addLimitOrderList", requestTime: new Date().toISOString(), data };
       },
     },
 

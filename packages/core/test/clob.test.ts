@@ -28,8 +28,8 @@ function stub(): { recorded: Recorded[]; client: any; contract: any } {
           recorded.push({ method: "sdk.addOrder", args });
           return { success: true, data: { txHash: "0xtx", clientOrderId: "0xcoid", operation: "addOrder" } };
         },
-        addOrderList: async (...args: unknown[]) => {
-          recorded.push({ method: "sdk.addOrderList", args });
+        addLimitOrderList: async (...args: unknown[]) => {
+          recorded.push({ method: "sdk.addLimitOrderList", args });
           return { success: true, data: { txHash: "0xtx" } };
         },
         cancelOrder: async (...args: unknown[]) => {
@@ -189,7 +189,7 @@ describe("clob_place_order_list", () => {
       /non-empty/i,
     );
   });
-  it("forwards each order to addOrderList", async () => {
+  it("forwards each order to addLimitOrderList", async () => {
     const { recorded, client, contract } = stub();
     await tool.handler(
       {
@@ -200,7 +200,7 @@ describe("clob_place_order_list", () => {
       },
       { config: BASE_CONFIG, client, contract },
     );
-    assert.equal(recorded[0]!.method, "sdk.addOrderList");
+    assert.equal(recorded[0]!.method, "sdk.addLimitOrderList");
     assert.equal((recorded[0]!.args![0] as unknown[]).length, 2);
   });
 });
