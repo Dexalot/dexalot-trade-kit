@@ -276,16 +276,16 @@ export function registerTransferTools(): ToolSpec[] {
             type: "string",
             description: 'Filter by token symbol (e.g. "USDC"). Omit for all symbols.',
           },
-          periodfrom: {
-            type: "string",
-            description: "Inclusive window start (backend-accepted date string). Omit for no lower bound.",
+          fromTs: {
+            type: "number",
+            description: "Inclusive window start as a unix timestamp in seconds. Omit for no lower bound.",
           },
-          periodto: {
-            type: "string",
-            description: "Inclusive window end. Omit for no upper bound.",
+          toTs: {
+            type: "number",
+            description: "Inclusive window end as a unix timestamp in seconds. Omit for no upper bound.",
           },
-          limit: { type: "number", description: "Maximum rows to return (mapped to SDK itemsperpage)." },
-          offset: { type: "number", description: "Page number for pagination (mapped to SDK pageno)." },
+          limit: { type: "number", description: "Maximum rows per page. Default 100." },
+          offset: { type: "number", description: "Row offset for pagination (the SDK converts it to a page number)." },
           // Legacy fields kept for backward-compat with callers that emitted
           // the pre-SDK schema; the backend never honored these on this
           // endpoint, so they are accepted-and-dropped here.
@@ -304,23 +304,23 @@ export function registerTransferTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         contract.requireWallet();
         const sdk = await contract.get();
-        // Map trade-kit's public schema (limit/offset, plus the SDK's native
-        // symbol/periodfrom/periodto) onto the SDK's opts shape. The legacy
-        // schema also accepted `status` and `type` filters, but the backend
-        // never honored them on this endpoint — the SDK signature reflects
-        // that reality, so any incoming status/type are silently dropped
-        // here for backward compatibility with existing callers.
-        const opts: { symbol?: string; periodfrom?: string; periodto?: string; itemsperpage?: number; pageno?: number } = {};
+        // Forward the trade-kit's public schema onto the SDK's reconciled opts
+        // shape { symbol, fromTs, toTs, limit, offset }. The SDK translates
+        // limit/offset -> itemsperpage/pageno and fromTs/toTs -> periodfrom/
+        // periodto internally. The legacy schema also accepted `status`/`type`
+        // filters, but the backend never honored them on this endpoint, so any
+        // incoming status/type are silently dropped here.
+        const opts: { symbol?: string; fromTs?: number; toTs?: number; limit?: number; offset?: number } = {};
         const symbol = readString(args, "symbol");
-        const periodfrom = readString(args, "periodfrom");
-        const periodto = readString(args, "periodto");
+        const fromTs = readNumber(args, "fromTs");
+        const toTs = readNumber(args, "toTs");
         const limit = readNumber(args, "limit");
         const offset = readNumber(args, "offset");
         if (symbol) opts.symbol = symbol;
-        if (periodfrom) opts.periodfrom = periodfrom;
-        if (periodto) opts.periodto = periodto;
-        if (limit !== undefined) opts.itemsperpage = limit;
-        if (offset !== undefined) opts.pageno = offset;
+        if (fromTs !== undefined) opts.fromTs = fromTs;
+        if (toTs !== undefined) opts.toTs = toTs;
+        if (limit !== undefined) opts.limit = limit;
+        if (offset !== undefined) opts.offset = offset;
         const data = contract.unwrap(
           await sdk.getCombinedTransfers(Object.keys(opts).length > 0 ? opts : undefined),
           "transfer.getCombinedTransfers",

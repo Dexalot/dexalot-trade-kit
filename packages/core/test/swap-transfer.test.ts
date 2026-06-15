@@ -213,23 +213,23 @@ describe("transfer_get_combined_transfers (SDK)", () => {
     assert.deepEqual(recorded[0]!.args, [undefined]);
   });
 
-  it("maps trade-kit limit/offset to SDK itemsperpage/pageno", async () => {
+  it("forwards limit/offset to the SDK verbatim (SDK translates to itemsperpage/pageno internally)", async () => {
     const { recorded, client, contract } = stub();
     await tool.handler({ limit: 10, offset: 0 }, { config: BASE_CONFIG, client, contract });
     assert.equal(recorded[0]!.method, "sdk.getCombinedTransfers");
-    assert.deepEqual(recorded[0]!.args, [{ itemsperpage: 10, pageno: 0 }]);
+    assert.deepEqual(recorded[0]!.args, [{ limit: 10, offset: 0 }]);
   });
 
-  it("forwards symbol + periodfrom + periodto when provided", async () => {
+  it("forwards symbol + fromTs + toTs (unix seconds) when provided", async () => {
     const { recorded, client, contract } = stub();
     await tool.handler(
-      { symbol: "USDC", periodfrom: "2026-01-01", periodto: "2026-06-01" },
+      { symbol: "USDC", fromTs: 1735689600, toTs: 1748736000 },
       { config: BASE_CONFIG, client, contract },
     );
     assert.deepEqual(recorded[0]!.args, [{
       symbol: "USDC",
-      periodfrom: "2026-01-01",
-      periodto: "2026-06-01",
+      fromTs: 1735689600,
+      toTs: 1748736000,
     }]);
   });
 
@@ -239,7 +239,7 @@ describe("transfer_get_combined_transfers (SDK)", () => {
       { type: "DEPOSIT", status: "COMPLETED", limit: 10 },
       { config: BASE_CONFIG, client, contract },
     );
-    // only itemsperpage survives; status/type are dropped at the boundary
-    assert.deepEqual(recorded[0]!.args, [{ itemsperpage: 10 }]);
+    // only limit survives; status/type are dropped at the boundary
+    assert.deepEqual(recorded[0]!.args, [{ limit: 10 }]);
   });
 });

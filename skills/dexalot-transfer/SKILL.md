@@ -57,7 +57,7 @@ Follow [`../_shared/preflight.md`](../_shared/preflight.md). All writes need a w
 | `dexalot transfer portfolio --token T --amount A --toAddress 0x...` | ✓ | P2P transfer on subnet |
 | `dexalot transfer get-deposit-bridge-fee --token T --amount A --sourceChain C` | ✓ | Estimate bridge cost in native asset |
 | `dexalot transfer get-token-details --token T` | — | Per-chain contract addresses + decimals |
-| `dexalot transfer get-combined-transfers [--symbol T] [--periodfrom DATE] [--periodto DATE] [--limit N] [--offset N]` | ✓ | History (canonical Transfer rows; legacy `--type`/`--status` flags are accepted but ignored — the backend never honored them) |
+| `dexalot transfer get-combined-transfers [--symbol T] [--fromTs UNIX_SECONDS] [--toTs UNIX_SECONDS] [--limit N] [--offset N]` | ✓ | History (canonical Transfer rows; `--fromTs`/`--toTs` are unix timestamps in seconds; legacy `--type`/`--status` flags are accepted but ignored — the backend never honored them) |
 
 ## Typical workflows
 
