@@ -33,8 +33,8 @@ importers:
   packages/cli:
     dependencies:
       '@dexalot/dexalot-sdk':
-        specifier: ^0.5.18
-        version: 0.5.18
+        specifier: ^0.5.19
+        version: 0.5.19
       ethers:
         specifier: ^6.16.0
         version: 6.16.0
@@ -64,8 +64,8 @@ importers:
   packages/core:
     dependencies:
       '@dexalot/dexalot-sdk':
-        specifier: ^0.5.18
-        version: 0.5.18
+        specifier: ^0.5.19
+        version: 0.5.19
       ethers:
         specifier: ^6.16.0
         version: 6.16.0
@@ -98,8 +98,8 @@ importers:
   packages/mcp:
     dependencies:
       '@dexalot/dexalot-sdk':
-        specifier: ^0.5.18
-        version: 0.5.18
+        specifier: ^0.5.19
+        version: 0.5.19
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
         version: 1.29.0(zod@4.4.3)
@@ -138,8 +138,8 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@dexalot/dexalot-sdk@0.5.18':
-    resolution: {integrity: sha512-skHJDULafI5Lb18pzdbDhfL3Hz6kh9FpuBA3vDRH3u1NhMX4auZKUffsF8xrVwlxQRaGqWm8HdDM4GIGDaMF1A==}
+  '@dexalot/dexalot-sdk@0.5.19':
+    resolution: {integrity: sha512-OYPEejyaSxBO5okaippdiaXeQG4AIfZqxYWQ/u1oFuXFJF5LNz4uwlZAtio30ww8Wb0Qj6zD7UXjRsFq9HRKvA==}
     engines: {node: '>=20'}
 
   '@esbuild/aix-ppc64@0.27.7':
@@ -944,8 +944,8 @@ packages:
     resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
     engines: {node: '>=14'}
 
-  form-data@4.0.5:
-    resolution: {integrity: sha512-8RipRLol37bNs2bhoV67fiTEvdTrbMUYcFTiy3+wuuOnUog2QBHCZWXDRijWQfAkhBj2Uf5UnVaiWwA5vdd82w==}
+  form-data@4.0.6:
+    resolution: {integrity: sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ==}
     engines: {node: '>= 6'}
 
   forwarded@0.2.0:
@@ -999,6 +999,10 @@ packages:
 
   hasown@2.0.3:
     resolution: {integrity: sha512-ej4AhfhfL2Q2zpMmLo7U1Uv9+PyhIZpgQLGT1F9miIGmiCJIoCgSmczFdrc97mWT4kVY72KA+WnnhJ5pghSvSg==}
+    engines: {node: '>= 0.4'}
+
+  hasown@2.0.4:
+    resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
 
   hono@4.12.23:
@@ -1508,7 +1512,7 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@dexalot/dexalot-sdk@0.5.18':
+  '@dexalot/dexalot-sdk@0.5.19':
     dependencies:
       axios: 1.16.1
       big.js: 7.0.1
@@ -1867,7 +1871,7 @@ snapshots:
   axios@1.16.1:
     dependencies:
       follow-redirects: 1.16.0
-      form-data: 4.0.5
+      form-data: 4.0.6
       https-proxy-agent: 5.0.1
       proxy-from-env: 2.1.0
     transitivePeerDependencies:
@@ -2023,7 +2027,7 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.3
+      hasown: 2.0.4
 
   esbuild@0.27.7:
     optionalDependencies:
@@ -2183,12 +2187,12 @@ snapshots:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
 
-  form-data@4.0.5:
+  form-data@4.0.6:
     dependencies:
       asynckit: 0.4.0
       combined-stream: 1.0.8
       es-set-tostringtag: 2.1.0
-      hasown: 2.0.3
+      hasown: 2.0.4
       mime-types: 2.1.35
 
   forwarded@0.2.0: {}
@@ -2240,6 +2244,10 @@ snapshots:
       has-symbols: 1.1.0
 
   hasown@2.0.3:
+    dependencies:
+      function-bind: 1.1.2
+
+  hasown@2.0.4:
     dependencies:
       function-bind: 1.1.2
 
