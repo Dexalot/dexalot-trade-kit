@@ -99,24 +99,28 @@ The CLI gets the same `ToolSpec[]` via `createToolRunner` and translates `dexalo
 | `market_get_tokens` | `getTokens` |
 | `market_get_environments` | `getEnvironments` |
 | `market_get_orderbook` | `getOrderBook` |
+| `market_get_candles` | `getCandles` |
+| `market_get_deployed_contracts` | `getDeployment` (env/contractType/returnAbi opts) |
 | `clob_get_open_orders` | `getOpenOrders` |
 | `clob_get_order` | `getOrder` |
 | `clob_get_order_by_client_id` | `getOrderByClientId` |
-| all 9 `clob.write` | `addOrder` / `addOrderList` / `cancelOrder` / … |
-| `swap_get_pairs` / `get_quote` / `get_firm_quote` / `execute` | `getSwapPairs` / `getSwapQuote` / `getSwapFirmQuote` / `executeRFQSwap` |
+| `clob_get_orders_by_account` | `getOrderHistory` |
+| all 9 `clob.write` | `addOrder` / `addLimitOrderList` / `cancelOrder` / … |
+| `swap_get_pairs` / `get_quote` / `get_firm_quote` / `execute` | `getSwapPairs` / `getSwapSoftQuote` / `getSwapFirmQuote` / `executeRFQSwap` |
 | `portfolio_get_balance` / `get_all_balances` / `get_chain_balance(s)` / `get_all_chain_balances` | `getPortfolioBalance` / … |
+| `portfolio_get_token_usd_prices` | `getTokenUsdPrices` |
+| `portfolio_get_token_usd_price_history` | `getTokenPriceHistory` |
+| `portfolio_get_token_hourly_usd_price_history` | `getTokenHourlyPriceHistory` |
 | all transfer writes + `get_deposit_bridge_fee` + `get_token_details` | `deposit` / `withdraw` / `addGas` / `removeGas` / `transferPortfolio` / … |
+| `transfer_get_combined_transfers` | `getCombinedTransfers` |
 | revert-reason decoding | `getRevertReason` |
 
 ### REST-only (SDK has no equivalent — documented gap)
 
 | Tools | Why REST |
 |---|---|
-| `market_get_candles`, `market_get_oldest_candle_ts`, `market_get_app_settings`, `market_get_blacklisted_addresses` | no SDK method |
-| `market_get_deployed_contracts` | SDK `getDeployment()` takes no params (no env/contracttype/returnabi filter) — REST keeps the richer capability |
-| `clob_get_orders_by_account` | SDK only does open orders + single-order reads, not full paginated history |
-| `portfolio_get_token_usd_prices`, `…_price_history`, `…_hourly_price_history`, `get_balance_proof` | no SDK method |
-| `transfer_get_combined_transfers` | no SDK method |
+| `market_get_oldest_candle_ts`, `market_get_app_settings`, `market_get_blacklisted_addresses` | no SDK method |
+| `portfolio_get_balance_proof` | no SDK method (Merkle-proof signing endpoint) |
 | all `analytics`, `info`, `leaderboard`, `vaults`, `trader_history`, `pnl` | no SDK methods (the SDK is a trading/account SDK; these are backend analytics/social endpoints) |
 | `rewards_*` subnet/breakdown/signature | signed REST; `rewards_get_stake_merkl` → external Merkl API |
 

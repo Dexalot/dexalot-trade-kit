@@ -1,9 +1,10 @@
 import {
   asRecord,
+  readNumber,
   readString,
   requireString,
 } from "./helpers.js";
-import { publicRateLimit, signedRateLimit } from "./common.js";
+import { signedRateLimit } from "./common.js";
 import { ConfigError } from "../utils/errors.js";
 import type { ToolSpec } from "./types.js";
 
@@ -13,7 +14,8 @@ import type { ToolSpec } from "./types.js";
  *
  * Routing:
  *   - subnet / chain balances → SDK contract reads (via DexalotContractClient)
- *   - USD prices, price histories → INFO_API (REST)
+ *   - USD prices, price histories → SDK (getTokenUsdPrices,
+ *     getTokenPriceHistory, getTokenHourlyPriceHistory)
  *   - balance proof → SIGNED_API (REST, requires x-signature header)
  */
 
@@ -175,7 +177,8 @@ export function registerPortfolioTools(): ToolSpec[] {
     },
 
     // ---------------------------------------------------------------------
-    // REST: USD prices via INFO_API
+    // SDK: USD prices (semi-static cache; SDK forwards parentEnv for cache-
+    // key namespacing and parity with the Python SDK)
     // ---------------------------------------------------------------------
     {
       name: "portfolio_get_token_usd_prices",
@@ -188,8 +191,13 @@ export function registerPortfolioTools(): ToolSpec[] {
         properties: {},
         additionalProperties: false,
       },
-      handler: async (_args, { client }) => {
-        return client.infoGet("usd-prices", undefined, publicRateLimit("portfolio_get_token_usd_prices", 10));
+      handler: async (_args, { config, contract }) => {
+        const sdk = await contract.get();
+        const data = contract.unwrap(
+          await sdk.getTokenUsdPrices(config.parentEnv),
+          "portfolio.getTokenUsdPrices",
+        );
+        return { endpoint: "SDK getTokenUsdPrices", requestTime: new Date().toISOString(), data };
       },
     },
 
@@ -197,24 +205,32 @@ export function registerPortfolioTools(): ToolSpec[] {
       name: "portfolio_get_token_usd_price_history",
       module: "portfolio",
       description:
-        "Daily USD price history for one token. Returns an array of { date, price } points. Useful for portfolio performance attribution. Token symbol must be a Dexalot subnet symbol (see market_get_tokens).",
+        "Daily USD price history for one token. Returns an ascending-time PricePoint[] of { timestamp, price }. Optional from/to window (unix seconds) bounds the series. Useful for portfolio performance attribution.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           token: TOKEN_PROP,
+          from: { type: "number", description: "Optional inclusive window start (unix seconds)." },
+          to: { type: "number", description: "Optional inclusive window end (unix seconds)." },
         },
         required: ["token"],
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client }) => {
+      handler: async (rawArgs, { contract }) => {
         const args = asRecord(rawArgs);
         const token = requireString(args, "token");
-        return client.infoGet(
-          "token-usd-price-history",
-          { token },
-          publicRateLimit("portfolio_get_token_usd_price_history", 5),
+        const opts: { from?: number; to?: number } = {};
+        const from = readNumber(args, "from");
+        const to = readNumber(args, "to");
+        if (from !== undefined) opts.from = from;
+        if (to !== undefined) opts.to = to;
+        const sdk = await contract.get();
+        const data = contract.unwrap(
+          await sdk.getTokenPriceHistory(token, Object.keys(opts).length > 0 ? opts : undefined),
+          "portfolio.getTokenPriceHistory",
         );
+        return { endpoint: "SDK getTokenPriceHistory", requestTime: new Date().toISOString(), data };
       },
     },
 
@@ -222,24 +238,32 @@ export function registerPortfolioTools(): ToolSpec[] {
       name: "portfolio_get_token_hourly_usd_price_history",
       module: "portfolio",
       description:
-        "Hourly USD price history for one token (more granular than the daily variant). Returns up to the last 7 days of hourly points for a Dexalot-listed token.",
+        "Hourly USD price history for one token (more granular than the daily variant). Returns an ascending-time PricePoint[] of { timestamp, price }. Optional from/to window (unix seconds) bounds the series.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           token: TOKEN_PROP,
+          from: { type: "number", description: "Optional inclusive window start (unix seconds)." },
+          to: { type: "number", description: "Optional inclusive window end (unix seconds)." },
         },
         required: ["token"],
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client }) => {
+      handler: async (rawArgs, { contract }) => {
         const args = asRecord(rawArgs);
         const token = requireString(args, "token");
-        return client.infoGet(
-          "token-usd-price-history-hourly",
-          { token },
-          publicRateLimit("portfolio_get_token_hourly_usd_price_history", 5),
+        const opts: { from?: number; to?: number } = {};
+        const from = readNumber(args, "from");
+        const to = readNumber(args, "to");
+        if (from !== undefined) opts.from = from;
+        if (to !== undefined) opts.to = to;
+        const sdk = await contract.get();
+        const data = contract.unwrap(
+          await sdk.getTokenHourlyPriceHistory(token, Object.keys(opts).length > 0 ? opts : undefined),
+          "portfolio.getTokenHourlyPriceHistory",
         );
+        return { endpoint: "SDK getTokenHourlyPriceHistory", requestTime: new Date().toISOString(), data };
       },
     },
 

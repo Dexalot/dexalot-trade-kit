@@ -5,7 +5,6 @@ import {
   readString,
   requireString,
 } from "./helpers.js";
-import { signedRateLimit } from "./common.js";
 import { ValidationError } from "../utils/errors.js";
 import type { ToolSpec } from "./types.js";
 
@@ -17,7 +16,9 @@ import type { ToolSpec } from "./types.js";
  * Routing:
  *   - SDK contract writes: deposit, withdraw, add_gas, remove_gas, transfer_portfolio
  *   - SDK contract reads:  get_deposit_bridge_fee, get_token_details
- *   - SIGNED_API REST:     get_combined_transfers (history)
+ *   - SDK signed REST:     get_combined_transfers (getCombinedTransfers — wraps
+ *     the same /transferscombined endpoint with canonical Transfer rows and
+ *     correct param names)
  */
 
 const TOKEN_PROP = {
@@ -259,46 +260,72 @@ export function registerTransferTools(): ToolSpec[] {
     },
 
     // -----------------------------------------------------------------
-    // REST: transfer history
+    // SDK: transfer history (signed under the hood; SDK normalizes the
+    // backend's numeric enums to human-readable labels)
     // -----------------------------------------------------------------
     {
       name: "transfer_get_combined_transfers",
       module: "transfer",
       description:
-        "Paginated history of every deposit, withdrawal, gas-top-up, and P2P transfer involving the connected wallet. Returns app-formatted Transfer rows. Supports filtering by type and status.",
+        "Paginated history of every deposit, withdrawal, gas-top-up, P2P portfolio transfer, and bridge recovery involving the connected wallet. Returns canonical Transfer rows with camelCase fields and human-readable actionType/status/bridge labels.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
+          symbol: {
+            type: "string",
+            description: 'Filter by token symbol (e.g. "USDC"). Omit for all symbols.',
+          },
+          fromTs: {
+            type: "number",
+            description: "Inclusive window start as a unix timestamp in seconds. Omit for no lower bound.",
+          },
+          toTs: {
+            type: "number",
+            description: "Inclusive window end as a unix timestamp in seconds. Omit for no upper bound.",
+          },
+          limit: { type: "number", description: "Maximum rows per page. Default 100." },
+          offset: { type: "number", description: "Row offset for pagination (the SDK converts it to a page number)." },
+          // Legacy fields kept for backward-compat with callers that emitted
+          // the pre-SDK schema; the backend never honored these on this
+          // endpoint, so they are accepted-and-dropped here.
           status: {
             type: "string",
-            description: "Filter by status (PENDING, COMPLETED, FAILED). Omit for all.",
+            description: "Deprecated no-op. The backend never filtered transfers by status on this endpoint.",
           },
           type: {
             type: "string",
-            description: "Filter by transfer kind (DEPOSIT, WITHDRAWAL, GAS, PORTFOLIO_TRANSFER). Omit for all.",
+            description: "Deprecated no-op. The backend never filtered transfers by type on this endpoint.",
           },
-          limit: { type: "number", description: "Maximum rows to return." },
-          offset: { type: "number", description: "Rows to skip (pagination)." },
         },
         additionalProperties: false,
       },
-      handler: async (rawArgs, { client }) => {
+      handler: async (rawArgs, { contract }) => {
         const args = asRecord(rawArgs);
-        const params: Record<string, string | number> = {};
-        const status = readString(args, "status");
-        const type = readString(args, "type");
+        contract.requireWallet();
+        const sdk = await contract.get();
+        // Forward the trade-kit's public schema onto the SDK's reconciled opts
+        // shape { symbol, fromTs, toTs, limit, offset }. The SDK translates
+        // limit/offset -> itemsperpage/pageno and fromTs/toTs -> periodfrom/
+        // periodto internally. The legacy schema also accepted `status`/`type`
+        // filters, but the backend never honored them on this endpoint, so any
+        // incoming status/type are silently dropped here.
+        const opts: { symbol?: string; fromTs?: number; toTs?: number; limit?: number; offset?: number } = {};
+        const symbol = readString(args, "symbol");
+        const fromTs = readNumber(args, "fromTs");
+        const toTs = readNumber(args, "toTs");
         const limit = readNumber(args, "limit");
         const offset = readNumber(args, "offset");
-        if (status) params.status = status;
-        if (type) params.type = type;
-        if (limit !== undefined) params.limit = limit;
-        if (offset !== undefined) params.offset = offset;
-        return client.signedGet(
-          "transferscombined",
-          Object.keys(params).length > 0 ? params : undefined,
-          signedRateLimit("transfer_get_combined_transfers", 5),
+        if (symbol) opts.symbol = symbol;
+        if (fromTs !== undefined) opts.fromTs = fromTs;
+        if (toTs !== undefined) opts.toTs = toTs;
+        if (limit !== undefined) opts.limit = limit;
+        if (offset !== undefined) opts.offset = offset;
+        const data = contract.unwrap(
+          await sdk.getCombinedTransfers(Object.keys(opts).length > 0 ? opts : undefined),
+          "transfer.getCombinedTransfers",
         );
+        return { endpoint: "SDK getCombinedTransfers", requestTime: new Date().toISOString(), data };
       },
     },
   ];

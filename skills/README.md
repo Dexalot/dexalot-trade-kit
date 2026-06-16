@@ -12,7 +12,7 @@ All skills call the CLI (`dexalot market get-pairs`), not MCP tool names directl
 **As a Claude Code plugin** (installs all 12 skills + registers the MCP server):
 
 ```text
-/plugin marketplace add Dexalot/dexalot-trade-kit
+/plugin marketplace add dexalot/dexalot-trade-kit
 /plugin install dexalot-trade@dexalot-trade-kit
 ```
 

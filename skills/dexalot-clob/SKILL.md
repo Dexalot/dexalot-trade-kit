@@ -19,7 +19,7 @@ metadata:
 
 # Dexalot CLOB CLI
 
-Place, cancel, replace, and query orders on the Dexalot CLOB (Central Limit Order Book). All writes are on-chain transactions against the TradePairs contract on the Dexalot subnet; all queries except `get-order-by-client-id` hit the signed REST API.
+Place, cancel, replace, and query orders on the Dexalot CLOB (Central Limit Order Book). All writes are on-chain transactions against the TradePairs contract on the Dexalot subnet; all reads route through `@dexalot/dexalot-sdk` (signed under the hood where required).
 
 **Wallet required for every command in this skill.**
 

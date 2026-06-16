@@ -126,11 +126,15 @@ export function registerSwapTools(): ToolSpec[] {
         if (amount === undefined) throw new ValidationError("amount is required.");
         const firm = readBoolean(args, "firm") ?? false;
         const chainId = readNumber(args, "chainId");
-        const data = contract.unwrap(
-          await sdk.getSwapQuote(fromToken, toToken, amount, firm, chainId),
-          "swap.getSwapQuote",
-        );
-        return { endpoint: "SDK getSwapQuote", requestTime: new Date().toISOString(), data };
+        const result = firm
+          ? await sdk.getSwapFirmQuote(fromToken, toToken, amount, chainId)
+          : await sdk.getSwapSoftQuote(fromToken, toToken, amount, chainId);
+        const data = contract.unwrap(result, firm ? "swap.getSwapFirmQuote" : "swap.getSwapSoftQuote");
+        return {
+          endpoint: firm ? "SDK getSwapFirmQuote" : "SDK getSwapSoftQuote",
+          requestTime: new Date().toISOString(),
+          data,
+        };
       },
     },
 

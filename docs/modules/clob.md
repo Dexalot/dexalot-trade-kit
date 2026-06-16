@@ -6,10 +6,10 @@ CLOB trading — split into `clob.read` (queries) and `clob.write` (state change
 
 | Tool | CLI | Route |
 |---|---|---|
-| `clob_get_open_orders` | `dexalot clob get-open-orders` | SIGNED_API `GET orders?status=OPEN` |
-| `clob_get_orders_by_account` | `dexalot clob get-orders-by-account` | SIGNED_API `GET orders` |
-| `clob_get_order` | `dexalot clob get-order` | SIGNED_API `GET transactions?orderid=` |
-| `clob_get_order_by_client_id` | `dexalot clob get-order-by-client-id` | SDK contract read |
+| `clob_get_open_orders` | `dexalot clob get-open-orders` | SDK `getOpenOrders` |
+| `clob_get_orders_by_account` | `dexalot clob get-orders-by-account` | SDK `getOrderHistory` |
+| `clob_get_order` | `dexalot clob get-order` | SDK `getOrder` |
+| `clob_get_order_by_client_id` | `dexalot clob get-order-by-client-id` | SDK `getOrderByClientId` |
 
 ## `clob.write` (9 tools, all `isWrite: true`)
 
