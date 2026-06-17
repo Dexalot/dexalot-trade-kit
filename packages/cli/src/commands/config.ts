@@ -1,4 +1,5 @@
 import { createInterface } from "node:readline/promises";
+import { Writable } from "node:stream";
 import { stdin, stdout } from "node:process";
 import { Wallet } from "ethers";
 import {
@@ -31,40 +32,46 @@ async function prompt(rl: ReturnType<typeof createInterface>, question: string, 
   return answer.trim() || (defaultValue ?? "");
 }
 
-function promptSecret(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
-  // readline doesn't natively support masking on Node; do best-effort: turn off
-  // terminal echo while the user types. Falls back to plain on non-TTY input.
-  return new Promise((resolve, reject) => {
-    if (!stdin.isTTY) {
-      rl.question(`${question}: `).then(resolve, reject);
-      return;
-    }
-    stdout.write(`${question}: `);
-    stdin.setRawMode(true);
-    let buffer = "";
-    const onData = (chunk: Buffer): void => {
-      const ch = chunk.toString("utf8");
-      if (ch === "\r" || ch === "\n") {
-        stdin.setRawMode(false);
-        stdin.off("data", onData);
-        stdout.write("\n");
-        resolve(buffer);
-      } else if (ch === "") {
-        stdin.setRawMode(false);
-        stdin.off("data", onData);
-        reject(new Error("Aborted"));
-      } else if (ch === "") {
-        if (buffer.length > 0) {
-          buffer = buffer.slice(0, -1);
-          stdout.write("\b \b");
-        }
-      } else {
-        buffer += ch;
-        stdout.write("*");
-      }
-    };
-    stdin.on("data", onData);
+/**
+ * Read a secret with the typed input fully hidden. The readline interface is
+ * created with a muteable output stream (see `createPrompter`); here we print
+ * the prompt to the real stdout, mute readline's echo while it reads the line,
+ * then unmute. The TTY does not echo because readline holds raw mode, and
+ * readline's own software echo is swallowed by the muted output -- so nothing
+ * reaches the screen or scrollback. (An earlier version printed `*` from a
+ * second stdin listener while readline was still echoing, leaking the key.)
+ */
+async function promptSecret(p: Prompter, question: string): Promise<string> {
+  if (!stdin.isTTY) {
+    return p.rl.question(`${question}: `);
+  }
+  stdout.write(`${question} (hidden, input not shown): `);
+  p.setMuted(true);
+  try {
+    return await p.rl.question("");
+  } finally {
+    p.setMuted(false);
+    stdout.write("\n");
+  }
+}
+
+interface Prompter {
+  rl: ReturnType<typeof createInterface>;
+  setMuted: (muted: boolean) => void;
+  close: () => void;
+}
+
+/** Build a readline interface whose output can be muted (to hide secrets). */
+function createPrompter(): Prompter {
+  let muted = false;
+  const output = new Writable({
+    write(chunk: Buffer | string, _enc: unknown, cb: (e?: Error | null) => void): void {
+      if (!muted) stdout.write(chunk);
+      cb();
+    },
   });
+  const rl = createInterface({ input: stdin, output, terminal: Boolean(stdin.isTTY) });
+  return { rl, setMuted: (m) => { muted = m; }, close: () => rl.close() };
 }
 
 interface InitOptions {
@@ -73,7 +80,8 @@ interface InitOptions {
 }
 
 export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
-  const rl = createInterface({ input: stdin, output: stdout });
+  const p = createPrompter();
+  const rl = p.rl;
   try {
     outputLine(`Dexalot CLI — interactive profile setup`);
     outputLine(`Config file: ${configFilePath()}\n`);
@@ -101,7 +109,7 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
 
     let privateKey = "";
     while (!privateKey) {
-      const raw = await promptSecret(rl, "Wallet private key (0x... or leave blank to skip)");
+      const raw = await promptSecret(p, "Wallet private key (0x... or leave blank to skip)");
       if (!raw) {
         outputLine("  Skipping wallet — only public market data will work.\n");
         break;
@@ -129,12 +137,12 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
       if (enc.toLowerCase() !== "n") {
         let keystore = "";
         while (!keystore) {
-          const pass = await promptSecret(rl, "Passphrase");
+          const pass = await promptSecret(p, "Passphrase");
           if (!pass) {
             errorLine("  Passphrase cannot be empty. Try again.");
             continue;
           }
-          const confirm = await promptSecret(rl, "Confirm passphrase");
+          const confirm = await promptSecret(p, "Confirm passphrase");
           if (pass !== confirm) {
             errorLine("  Passphrases did not match. Try again.");
             continue;
@@ -177,7 +185,7 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
     outputLine(`  Default:       ${config.default_profile === profileName ? "yes" : "no"}`);
     outputLine(`\nNext: dexalot --profile ${profileName} market get-pairs`);
   } finally {
-    rl.close();
+    p.close();
   }
 }
 
