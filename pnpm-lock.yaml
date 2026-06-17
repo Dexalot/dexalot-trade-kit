@@ -33,8 +33,8 @@ importers:
   packages/cli:
     dependencies:
       '@dexalot/dexalot-sdk':
-        specifier: ^0.5.19
-        version: 0.5.19
+        specifier: ^0.6.0
+        version: 0.6.0
       ethers:
         specifier: ^6.16.0
         version: 6.16.0
@@ -64,8 +64,8 @@ importers:
   packages/core:
     dependencies:
       '@dexalot/dexalot-sdk':
-        specifier: ^0.5.19
-        version: 0.5.19
+        specifier: ^0.6.0
+        version: 0.6.0
       ethers:
         specifier: ^6.16.0
         version: 6.16.0
@@ -98,8 +98,8 @@ importers:
   packages/mcp:
     dependencies:
       '@dexalot/dexalot-sdk':
-        specifier: ^0.5.19
-        version: 0.5.19
+        specifier: ^0.6.0
+        version: 0.6.0
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
         version: 1.29.0(zod@4.4.3)
@@ -138,8 +138,8 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@dexalot/dexalot-sdk@0.5.19':
-    resolution: {integrity: sha512-OYPEejyaSxBO5okaippdiaXeQG4AIfZqxYWQ/u1oFuXFJF5LNz4uwlZAtio30ww8Wb0Qj6zD7UXjRsFq9HRKvA==}
+  '@dexalot/dexalot-sdk@0.6.0':
+    resolution: {integrity: sha512-i5RIJmeM9AHaNsOyFbTe1xhMabKuw6jICts1NIDnB505n1+C5Rb5oOM5gN8su1WHMGqrdYH1KPf/YcQekng8fA==}
     engines: {node: '>=20'}
 
   '@esbuild/aix-ppc64@0.27.7':
@@ -1512,7 +1512,7 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@dexalot/dexalot-sdk@0.5.19':
+  '@dexalot/dexalot-sdk@0.6.0':
     dependencies:
       axios: 1.16.1
       big.js: 7.0.1

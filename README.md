@@ -50,35 +50,28 @@ It runs as a **local process** with your wallet private key stored only on your 
 
 ## Quick start
 
-**Prerequisites:** Node.js ≥ 18, pnpm ≥ 9.
+**Prerequisites:** Node.js ≥ 18.
 
-### Option A — Claude Code plugin (skills + MCP server in one step)
-
-```text
-/plugin marketplace add dexalot/dexalot-trade-kit
-/plugin install dexalot-trade@dexalot-trade-kit
-```
-
-This installs all 12 skills and registers the bundled `dexalot-trade-mcp` server. The bundled server runs **`--read-only` on mainnet** by default; to enable trading, configure a profile (`dexalot config init`) and re-register the server without `--read-only` (Option B), or edit the plugin's `mcpServers` args. The skills call the `dexalot` CLI, so install that too (the skill install prompt does this, or run `npm i -g @dexalot/trade-cli`).
-
-### Option B — npm (CLI + MCP server as packages)
+One command registers the MCP server with your AI client — no global install needed:
 
 ```bash
-# 1. Install
-npm install -g @dexalot/trade-mcp @dexalot/trade-cli
-
-# 2. Configure a profile (interactive wizard)
-dexalot config init
-
-# 3. Register the MCP server with your AI client
-dexalot-trade-mcp setup --client claude-code
-dexalot-trade-mcp setup --client cursor
-dexalot-trade-mcp setup --client claude-desktop
-dexalot-trade-mcp setup --client vscode        # writes .mcp.json in cwd
-dexalot-trade-mcp setup --client windsurf
+npx -y @dexalot/trade-mcp setup --client claude-desktop   # or: claude-code | cursor | vscode | windsurf
 ```
 
-> **Publish order:** the plugin's bundled MCP server runs `npx -y @dexalot/trade-mcp`, and the skills shell out to the `dexalot` CLI — so the npm packages (Option B) must be published before Option A works end-to-end.
+It starts **`--read-only` on mainnet**. To enable trading, add a wallet profile (writes `~/.dexalot/config.toml`), then re-run `setup` with `--profile <name>`:
+
+```bash
+npx -y @dexalot/trade-cli config init
+```
+
+> **Claude Code** can install the 12 skills + MCP server together in one step instead:
+>
+> ```text
+> /plugin marketplace add dexalot/dexalot-trade-kit
+> /plugin install dexalot-trade@dexalot-trade-kit
+> ```
+
+Prefer global binaries (`dexalot-trade-mcp`, `dexalot`)? `npm i -g @dexalot/trade-mcp @dexalot/trade-cli`.
 
 ## dexalot-trade-mcp
 

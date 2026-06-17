@@ -29,6 +29,23 @@ const WAIT_PROP = {
   description: "Wait for on-chain receipt before returning. Default: true.",
 };
 
+const TIF_VALUES = ["GTC", "FOK", "IOC", "PO"] as const;
+const STP_VALUES = ["CANCEL_TAKER", "CANCEL_MAKER", "CANCEL_BOTH", "CANCEL_NONE"] as const;
+
+const TIF_PROP = {
+  type: "string" as const,
+  enum: [...TIF_VALUES],
+  description:
+    "Time-in-force (type2). GTC = good-till-cancelled (default), FOK = fill-or-kill, IOC = immediate-or-cancel, PO = post-only/maker-only. Ignored for MARKET orders.",
+};
+
+const STP_PROP = {
+  type: "string" as const,
+  enum: [...STP_VALUES],
+  description:
+    "Self-trade prevention. CANCEL_TAKER (default) cancels the incoming order, CANCEL_MAKER the resting order, CANCEL_BOTH both, CANCEL_NONE allows the self-trade.",
+};
+
 const ORDER_REQUEST_SCHEMA = {
   type: "object" as const,
   description: "A single order specification.",
@@ -38,6 +55,8 @@ const ORDER_REQUEST_SCHEMA = {
     amount: { type: "number" as const, description: "Order quantity in base-token units." },
     price: { type: "number" as const, description: "Limit price in quote-token units. Required for LIMIT, ignored for MARKET." },
     type: { type: "string" as const, enum: ["LIMIT", "MARKET"], description: "Order type. Default: LIMIT." },
+    timeInForce: TIF_PROP,
+    stp: STP_PROP,
   },
   required: ["pair", "side", "amount"],
   additionalProperties: false,
@@ -49,6 +68,8 @@ function buildOrderRequest(args: Record<string, unknown>): {
   amount: number;
   price?: number;
   type?: "LIMIT" | "MARKET";
+  timeInForce?: string;
+  stp?: string;
 } {
   const pair = requireString(args, "pair");
   const sideRaw = requireString(args, "side").toUpperCase();
@@ -62,12 +83,24 @@ function buildOrderRequest(args: Record<string, unknown>): {
   if (typeRaw && typeRaw !== "LIMIT" && typeRaw !== "MARKET") {
     throw new ValidationError(`type must be "LIMIT" or "MARKET" (got "${typeRaw}").`);
   }
+  // Faithful to the contract: only LIMIT requires a price. MARKET ignores price
+  // and time-in-force on-chain. Per-pair/post-only/FOK rules surface as reverts.
   if ((typeRaw ?? "LIMIT") === "LIMIT" && price === undefined) {
     throw new ValidationError("price is required for LIMIT orders.");
+  }
+  const tifRaw = readString(args, "timeInForce")?.toUpperCase();
+  if (tifRaw && !(TIF_VALUES as readonly string[]).includes(tifRaw)) {
+    throw new ValidationError(`timeInForce must be one of ${TIF_VALUES.join(", ")} (got "${tifRaw}").`);
+  }
+  const stpRaw = readString(args, "stp")?.toUpperCase();
+  if (stpRaw && !(STP_VALUES as readonly string[]).includes(stpRaw)) {
+    throw new ValidationError(`stp must be one of ${STP_VALUES.join(", ")} (got "${stpRaw}").`);
   }
   const req: ReturnType<typeof buildOrderRequest> = { pair, side: sideRaw, amount };
   if (price !== undefined) req.price = price;
   if (typeRaw) req.type = typeRaw as "LIMIT" | "MARKET";
+  if (tifRaw) req.timeInForce = tifRaw;
+  if (stpRaw) req.stp = stpRaw;
   return req;
 }
 
@@ -77,7 +110,7 @@ export function registerClobWriteTools(): ToolSpec[] {
       name: "clob_place_order",
       module: "clob.write",
       description:
-        "Place a single CLOB order (LIMIT or MARKET, BUY or SELL). Submits a transaction to the TradePairs contract on the Dexalot subnet. Returns txHash + the auto-generated clientOrderId on success.",
+        "Place a single CLOB order (LIMIT or MARKET, BUY or SELL). Optional timeInForce (GTC/FOK/IOC/PO) and stp (self-trade prevention) modifiers. Submits a transaction to the TradePairs contract on the Dexalot subnet. Returns txHash + the auto-generated clientOrderId on success.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -87,6 +120,8 @@ export function registerClobWriteTools(): ToolSpec[] {
           amount: { type: "number", description: "Order quantity in base-token units." },
           price: { type: "number", description: "Limit price (required for LIMIT, ignored for MARKET)." },
           type: { type: "string", enum: ["LIMIT", "MARKET"], description: "Order type. Default: LIMIT." },
+          timeInForce: TIF_PROP,
+          stp: STP_PROP,
           waitForReceipt: WAIT_PROP,
         },
         required: ["pair", "side", "amount"],
@@ -285,7 +320,7 @@ export function registerClobWriteTools(): ToolSpec[] {
       name: "clob_replace_order",
       module: "clob.write",
       description:
-        "Replace an existing open order with a new price and/or amount. Atomic cancel + add in one transaction — cheaper than separate cancel + place. Returns txHash + the new clientOrderId.",
+        "Replace an existing open order with a new price and/or amount. The replacement inherits the original order's type, time-in-force and stp (the contract's cancelReplaceOrder carries only price + quantity) — to change those, cancel and place a fresh order. Atomic cancel + add in one transaction. Returns txHash + the new clientOrderId.",
       isWrite: true,
       inputSchema: {
         type: "object",

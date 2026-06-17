@@ -119,7 +119,40 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
     const profile: DexalotProfile = {
       network,
     };
-    if (privateKey) profile.private_key = privateKey;
+    let encrypted = false;
+    if (privateKey) {
+      const enc = await prompt(
+        rl,
+        "Encrypt the key at rest with a passphrase? (Y/n)",
+        "Y",
+      );
+      if (enc.toLowerCase() !== "n") {
+        let keystore = "";
+        while (!keystore) {
+          const pass = await promptSecret(rl, "Passphrase");
+          if (!pass) {
+            errorLine("  Passphrase cannot be empty. Try again.");
+            continue;
+          }
+          const confirm = await promptSecret(rl, "Confirm passphrase");
+          if (pass !== confirm) {
+            errorLine("  Passphrases did not match. Try again.");
+            continue;
+          }
+          outputLine("  Encrypting (scrypt)…");
+          keystore = new Wallet(privateKey).encryptSync(pass);
+        }
+        profile.encrypted_key = keystore;
+        encrypted = true;
+        outputLine(
+          "  → Stored as encrypted_key. At runtime, set DEXALOT_KEYSTORE_PASSWORD to this passphrase\n" +
+            "    (e.g. from your OS keychain) so the MCP server / CLI can decrypt it.\n",
+        );
+      } else {
+        profile.private_key = privateKey;
+        outputLine("  → Stored as plaintext private_key.\n");
+      }
+    }
 
     if (network === "devnet") {
       const apiOverride = await prompt(
@@ -138,7 +171,9 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
 
     outputLine(`✓ Saved profile "${profileName}" to ${configFilePath()}`);
     outputLine(`  Network:       ${network}`);
-    outputLine(`  Private key:   ${maskKey(privateKey)}`);
+    outputLine(
+      `  Private key:   ${privateKey ? (encrypted ? "encrypted (passphrase-protected)" : maskKey(privateKey)) : "(none — read-only)"}`,
+    );
     outputLine(`  Default:       ${config.default_profile === profileName ? "yes" : "no"}`);
     outputLine(`\nNext: dexalot --profile ${profileName} market get-pairs`);
   } finally {
@@ -160,6 +195,7 @@ export function cmdConfigShow(profileName?: string): void {
   outputLine(`  api_base_url   ${profile.api_base_url ?? "(auto from network)"}`);
   outputLine(`  parent_env     ${profile.parent_env ?? "(auto from network)"}`);
   outputLine(`  private_key    ${maskKey(profile.private_key ?? "")}`);
+  outputLine(`  encrypted_key  ${profile.encrypted_key ? "set (passphrase-protected)" : "(unset)"}`);
   outputLine(`  timeout_ms     ${profile.timeout_ms ?? "(default 15000)"}`);
 }
 
