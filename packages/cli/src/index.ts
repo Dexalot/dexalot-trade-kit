@@ -47,7 +47,11 @@ async function dispatch(v: CliValues): Promise<void> {
 
   // Commands that don't need a config / network (run pre-loadConfig)
   if (module === "setup") {
-    handleSetupCommand([action ?? "", ...rest].filter(Boolean));
+    // setup takes flags (--client/--profile/--modules), which the generic
+    // parser separates out of positionals — so forward the raw argv after the
+    // `setup` token instead of the parsed positionals (which would drop them).
+    const setupIdx = process.argv.indexOf("setup");
+    handleSetupCommand(setupIdx >= 0 ? process.argv.slice(setupIdx + 1) : []);
     return;
   }
   if (module === "config") {
