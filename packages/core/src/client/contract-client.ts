@@ -125,7 +125,9 @@ export class DexalotContractClient {
    */
   public requireWallet(): void {
     if (!this.config.privateKey) {
-      throw new ConfigError(
+      // A locked encrypted_key profile surfaces its specific guidance here,
+      // rather than failing every (public) command at config-load time.
+      throw this.config.walletError ?? new ConfigError(
         "Operation requires a wallet, but no private key was loaded.",
         "Set DEXALOT_PRIVATE_KEY or add private_key to your ~/.dexalot/config.toml profile.",
       );

@@ -40,6 +40,13 @@ export interface DexalotConfig {
   address?: string;
   /** True when a wallet/private key was successfully loaded. */
   hasAuth: boolean;
+  /**
+   * Deferred wallet-load failure (e.g. an encrypted_key profile with no/wrong
+   * DEXALOT_KEYSTORE_PASSWORD). Public/read-only commands ignore this; it is
+   * thrown only when an operation actually needs to sign. Keeping it lazy means
+   * an encrypted profile never blocks public market/analytics/info reads.
+   */
+  walletError?: ConfigError;
   /** Resolved profile name (used by setup and log lines). */
   profile: string;
   /** REST API base URL — includes the `/api` suffix. */
@@ -111,30 +118,40 @@ function validatePrivateKeyHex(raw: string): string {
   return hex;
 }
 
-function loadWallet(toml: DexalotProfile): { privateKey?: string; hasAuth: boolean } {
+function loadWallet(toml: DexalotProfile): { privateKey?: string; hasAuth: boolean; walletError?: ConfigError } {
   // 1. Plaintext key from env or profile (back-compat, CI, power users).
   const raw = process.env.DEXALOT_PRIVATE_KEY?.trim() ?? toml.private_key?.trim();
   if (raw) return { privateKey: validatePrivateKeyHex(raw), hasAuth: true };
 
   // 2. Encrypted keystore in the profile — decrypt with the passphrase from the env.
+  //    NOTE: a decryption failure is returned as `walletError`, NOT thrown, so that
+  //    public/read-only commands (market, analytics, info, ...) still work when an
+  //    encrypted profile is present. The error surfaces only when a signing/write
+  //    operation actually needs the key (see requireWallet / ensureSignatureHeader).
   const encrypted = toml.encrypted_key?.trim();
   if (encrypted) {
     const passphrase = process.env.DEXALOT_KEYSTORE_PASSWORD;
     if (!passphrase) {
-      throw new ConfigError(
-        "Profile has an encrypted_key but DEXALOT_KEYSTORE_PASSWORD is not set.",
-        "Set DEXALOT_KEYSTORE_PASSWORD to the passphrase you chose during `dexalot config init` " +
-          "(e.g. source it from your OS keychain). Or run a read-only profile with no key at all.",
-      );
+      return {
+        hasAuth: false,
+        walletError: new ConfigError(
+          "Profile has an encrypted_key but DEXALOT_KEYSTORE_PASSWORD is not set.",
+          "Set DEXALOT_KEYSTORE_PASSWORD to the passphrase you chose during `dexalot config init` " +
+            "(e.g. source it from your OS keychain). Public reads work without it.",
+        ),
+      };
     }
     let decrypted: ethers.HDNodeWallet | ethers.Wallet;
     try {
       decrypted = ethers.Wallet.fromEncryptedJsonSync(encrypted, passphrase);
     } catch {
-      throw new ConfigError(
-        "Failed to decrypt encrypted_key — wrong passphrase or corrupted keystore.",
-        "Check DEXALOT_KEYSTORE_PASSWORD, or re-run `dexalot config init` to recreate the profile.",
-      );
+      return {
+        hasAuth: false,
+        walletError: new ConfigError(
+          "Failed to decrypt encrypted_key — wrong passphrase or corrupted keystore.",
+          "Check DEXALOT_KEYSTORE_PASSWORD, or re-run `dexalot config init` to recreate the profile.",
+        ),
+      };
     }
     return { privateKey: validatePrivateKeyHex(decrypted.privateKey), hasAuth: true };
   }

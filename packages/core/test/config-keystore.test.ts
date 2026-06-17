@@ -41,17 +41,26 @@ test("encrypted_key decrypts with the right passphrase", async () => {
   });
 });
 
-test("encrypted_key without DEXALOT_KEYSTORE_PASSWORD throws", async () => {
+// A locked encrypted_key must NOT block config load — public/read-only commands
+// have to keep working. The error is deferred onto `walletError`, surfaced only
+// when a signing/write op needs the key. (Regression: it used to throw eagerly,
+// breaking even `market get-pairs` for anyone with an encrypted profile.)
+test("encrypted_key without DEXALOT_KEYSTORE_PASSWORD does NOT throw (deferred)", async () => {
   await withConfig(encryptedToml, async () => {
     delete process.env.DEXALOT_KEYSTORE_PASSWORD;
-    await assert.rejects(loadConfig({ readOnly: false }), /DEXALOT_KEYSTORE_PASSWORD/);
+    const cfg = await loadConfig({ readOnly: false });
+    assert.equal(cfg.hasAuth, false);
+    assert.equal(cfg.privateKey, undefined);
+    assert.match(cfg.walletError?.message ?? "", /DEXALOT_KEYSTORE_PASSWORD/);
   });
 });
 
-test("encrypted_key with wrong passphrase throws", async () => {
+test("encrypted_key with wrong passphrase does NOT throw (deferred walletError)", async () => {
   await withConfig(encryptedToml, async () => {
     process.env.DEXALOT_KEYSTORE_PASSWORD = "wrong";
-    await assert.rejects(loadConfig({ readOnly: false }), /decrypt/i);
+    const cfg = await loadConfig({ readOnly: false });
+    assert.equal(cfg.hasAuth, false);
+    assert.match(cfg.walletError?.message ?? "", /decrypt/i);
   });
 });
 
