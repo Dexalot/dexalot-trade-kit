@@ -58,11 +58,25 @@ One command registers the MCP server with your AI client — no global install n
 npx -y @dexalot/trade-mcp setup --client claude-desktop   # or: claude-code | cursor | vscode | windsurf
 ```
 
-It starts **`--read-only` on mainnet**. To enable trading, add a wallet profile (writes `~/.dexalot/config.toml`), then re-run `setup` with `--profile <name>`:
+It starts **`--read-only` on mainnet** — no wallet needed for market data, analytics, and balance reads.
+
+### Enable trading (add a wallet)
+
+**1. Create a profile.** The interactive wizard asks for a profile name (e.g. `live`), a network, and your wallet's private key — and offers to encrypt it at rest:
 
 ```bash
 npx -y @dexalot/trade-cli config init
 ```
+
+This writes the profile to `~/.dexalot/config.toml`. The key stays on your machine and is only used locally to sign transactions. (If you chose encryption, set `DEXALOT_KEYSTORE_PASSWORD` so the server can decrypt it — ideally from your OS keychain.)
+
+**2. Re-register the server with that profile** so the write tools (place/cancel orders, deposits, swaps) load:
+
+```bash
+npx -y @dexalot/trade-mcp setup --client claude-desktop --profile live
+```
+
+Restart your AI client. Verify with the prompt *"What are my Dexalot capabilities?"* — it should report `readOnly: false`, `hasWallet: true`.
 
 > **Claude Code** can install the 12 skills + MCP server together in one step instead:
 >
