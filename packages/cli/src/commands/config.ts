@@ -85,7 +85,9 @@ interface InitOptions {
 export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
   const p = createPrompter();
   const rl = p.rl;
-  let regCtx: { profileName: string; hasKey: boolean; encrypted: boolean; passphrase: string } | null = null;
+  let regCtx:
+    | { profileName: string; isDefaultProfile: boolean; hasKey: boolean; encrypted: boolean; passphrase: string }
+    | null = null;
   try {
     outputLine(`Dexalot CLI — interactive profile setup`);
     outputLine(`Config file: ${configFilePath()}\n`);
@@ -185,8 +187,9 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
     outputLine(
       `  Private key:   ${privateKey ? (encrypted ? "encrypted (passphrase-protected)" : maskKey(privateKey)) : "(none — read-only)"}`,
     );
-    outputLine(`  Default:       ${config.default_profile === profileName ? "yes" : "no"}`);
-    regCtx = { profileName, hasKey: Boolean(privateKey), encrypted, passphrase };
+    const isDefaultProfile = config.default_profile === profileName;
+    outputLine(`  Default:       ${isDefaultProfile ? "yes" : "no"}`);
+    regCtx = { profileName, isDefaultProfile, hasKey: Boolean(privateKey), encrypted, passphrase };
   } finally {
     p.close();
   }
@@ -195,7 +198,9 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
   // raw-mode checkbox owns stdin without readline echoing keystrokes underneath.
   if (regCtx) {
     await registerClients(regCtx);
-    outputLine(`\nNext: dexalot --profile ${regCtx.profileName} market get-pairs`);
+    // The default profile is used implicitly, so don't make the user type --profile.
+    const profileFlag = regCtx.isDefaultProfile ? "" : ` --profile ${regCtx.profileName}`;
+    outputLine(`\nNext: dexalot${profileFlag} market get-pairs`);
   }
 }
 
@@ -266,6 +271,7 @@ function checkboxSelect(
 
 async function registerClients(ctx: {
   profileName: string;
+  isDefaultProfile: boolean;
   hasKey: boolean;
   encrypted: boolean;
   passphrase: string;
@@ -297,9 +303,13 @@ async function registerClients(ctx: {
   }
 
   const env = ctx.encrypted && ctx.passphrase ? { DEXALOT_KEYSTORE_PASSWORD: ctx.passphrase } : undefined;
+  // Only pin --profile when it isn't the default — otherwise the server picks up
+  // default_profile implicitly (and the entry is named "dexalot-trade-mcp", not
+  // "...-<profile>"). Users only specify a profile to override the default.
+  const profile = ctx.isDefaultProfile ? undefined : ctx.profileName;
   for (const client of selected) {
     try {
-      runSetup({ client: client as ClientId, profile: ctx.profileName, modules: "all", readOnly, env });
+      runSetup({ client: client as ClientId, profile, modules: "all", readOnly, env });
     } catch (err) {
       errorLine(`  Could not register ${CLIENT_NAMES[client as ClientId]}: ${(err as Error).message}`);
     }
