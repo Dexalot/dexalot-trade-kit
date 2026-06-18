@@ -201,7 +201,7 @@ async function maybeRegisterClient(
   ctx: { profileName: string; hasKey: boolean; encrypted: boolean; passphrase: string },
 ): Promise<void> {
   const choice = (
-    await prompt(rl, `\nRegister an MCP client now? (${SUPPORTED_CLIENTS.join("/")}/skip)`, "skip")
+    await prompt(rl, `\nRegister an MCP client now? (${SUPPORTED_CLIENTS.join("/")}/skip)`, "claude-desktop")
   ).toLowerCase();
   if (choice === "skip" || choice === "") return;
   if (!SUPPORTED_CLIENTS.includes(choice as ClientId)) {
