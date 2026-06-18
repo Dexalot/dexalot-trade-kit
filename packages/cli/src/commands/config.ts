@@ -85,6 +85,7 @@ interface InitOptions {
 export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
   const p = createPrompter();
   const rl = p.rl;
+  let regCtx: { profileName: string; hasKey: boolean; encrypted: boolean; passphrase: string } | null = null;
   try {
     outputLine(`Dexalot CLI — interactive profile setup`);
     outputLine(`Config file: ${configFilePath()}\n`);
@@ -185,59 +186,130 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
       `  Private key:   ${privateKey ? (encrypted ? "encrypted (passphrase-protected)" : maskKey(privateKey)) : "(none — read-only)"}`,
     );
     outputLine(`  Default:       ${config.default_profile === profileName ? "yes" : "no"}`);
-
-    // Offer to register the MCP server with an AI client, wiring the profile
-    // (and, for an encrypted key, the passphrase) in automatically.
-    await maybeRegisterClient(rl, { profileName, hasKey: Boolean(privateKey), encrypted, passphrase });
-
-    outputLine(`\nNext: dexalot --profile ${profileName} market get-pairs`);
+    regCtx = { profileName, hasKey: Boolean(privateKey), encrypted, passphrase };
   } finally {
     p.close();
   }
+
+  // Client registration runs AFTER the readline prompter is closed, so the
+  // raw-mode checkbox owns stdin without readline echoing keystrokes underneath.
+  if (regCtx) {
+    await registerClients(regCtx);
+    outputLine(`\nNext: dexalot --profile ${regCtx.profileName} market get-pairs`);
+  }
 }
 
-async function maybeRegisterClient(
-  rl: ReturnType<typeof createInterface>,
-  ctx: { profileName: string; hasKey: boolean; encrypted: boolean; passphrase: string },
-): Promise<void> {
-  const choice = (
-    await prompt(rl, `\nRegister an MCP client now? (${SUPPORTED_CLIENTS.join("/")}/skip)`, "claude-desktop")
-  ).toLowerCase();
-  if (choice === "skip" || choice === "") return;
-  if (!SUPPORTED_CLIENTS.includes(choice as ClientId)) {
-    errorLine(`  Unknown client "${choice}". Skipping — register later with: dexalot setup --client <name>`);
+/**
+ * Multi-select checkbox over a TTY: ↑/↓ to move, space to toggle, enter to
+ * confirm. Returns the selected values. On a non-TTY (piped input) it returns
+ * the pre-checked defaults so scripts stay deterministic.
+ */
+function checkboxSelect(
+  title: string,
+  items: { value: string; label: string; checked?: boolean }[],
+): Promise<string[]> {
+  const checked = new Set(items.filter((i) => i.checked).map((i) => i.value));
+  if (!stdin.isTTY) return Promise.resolve([...checked]);
+
+  return new Promise((resolve, reject) => {
+    let cursor = 0;
+    stdout.write(`${title}\n  (↑/↓ move · space toggle · enter confirm)\n`);
+    const render = (first = false): void => {
+      if (!first) stdout.write(`[${items.length}A`); // move cursor up N lines
+      for (let i = 0; i < items.length; i++) {
+        const pointer = i === cursor ? "›" : " ";
+        const box = checked.has(items[i]!.value) ? "◉" : "◯";
+        stdout.write(`\r[2K ${pointer} ${box} ${items[i]!.label}\n`);
+      }
+    };
+    render(true);
+    stdout.write("[?25l"); // hide cursor
+    const wasRaw = Boolean(stdin.isRaw);
+    stdin.setRawMode(true);
+    stdin.resume();
+    let buf = "";
+    const cleanup = (): void => {
+      stdin.removeListener("data", onData);
+      stdin.setRawMode(wasRaw);
+      stdout.write("[?25h"); // show cursor
+    };
+    const onData = (chunk: Buffer): void => {
+      buf += chunk.toString("utf8");
+      while (buf.length > 0) {
+        if (buf === "" || buf === "[") return; // wait for the rest of an escape seq
+        if (buf.startsWith("[A") || buf.startsWith("[B")) {
+          cursor = buf[2] === "A" ? (cursor - 1 + items.length) % items.length : (cursor + 1) % items.length;
+          buf = buf.slice(3);
+          render();
+          continue;
+        }
+        const ch = buf[0]!;
+        buf = buf.slice(1);
+        if (ch === " ") {
+          const v = items[cursor]!.value;
+          if (checked.has(v)) checked.delete(v); else checked.add(v);
+          render();
+        } else if (ch === "\r" || ch === "\n") {
+          cleanup();
+          resolve(items.filter((i) => checked.has(i.value)).map((i) => i.value));
+          return;
+        } else if (ch === "") {
+          cleanup();
+          reject(new Error("Aborted"));
+          return;
+        }
+      }
+    };
+    stdin.on("data", onData);
+  });
+}
+
+async function registerClients(ctx: {
+  profileName: string;
+  hasKey: boolean;
+  encrypted: boolean;
+  passphrase: string;
+}): Promise<void> {
+  const items = SUPPORTED_CLIENTS.map((c) => ({
+    value: c,
+    label: CLIENT_NAMES[c],
+    checked: c === "claude-desktop", // sensible default; user toggles others
+  }));
+  let selected: string[];
+  try {
+    selected = await checkboxSelect("\nRegister the MCP server with which clients?", items);
+  } catch {
+    return; // aborted (Ctrl-C)
+  }
+  if (selected.length === 0) {
+    outputLine("  No clients selected — register later with: dexalot setup --client <name>");
     return;
   }
 
-  // Safe default: read-only. Writes (place/cancel orders, deposits, swaps) are
+  // Safe default: read-only. Trading (place/cancel orders, deposits, swaps) is
   // an explicit opt-in, and only meaningful when a wallet is configured.
   let readOnly = true;
   if (ctx.hasKey) {
-    const writes = await prompt(rl, "Enable trading (write tools: orders, deposits, swaps)? (y/N)", "N");
-    readOnly = writes.toLowerCase() !== "y";
+    const rl2 = createInterface({ input: stdin, output: stdout });
+    const ans = (await rl2.question("Enable trading (write tools: orders, deposits, swaps)? (y/N): ")).trim();
+    rl2.close();
+    readOnly = ans.toLowerCase() !== "y";
   }
 
-  const env: Record<string, string> = {};
-  if (ctx.encrypted && ctx.passphrase) env.DEXALOT_KEYSTORE_PASSWORD = ctx.passphrase;
-
-  try {
-    runSetup({
-      client: choice as ClientId,
-      profile: ctx.profileName,
-      modules: "all",
-      readOnly,
-      env: Object.keys(env).length > 0 ? env : undefined,
-    });
-    if (env.DEXALOT_KEYSTORE_PASSWORD) {
-      outputLine(
-        `  Note: your passphrase was written into the ${CLIENT_NAMES[choice as ClientId]} config so the\n` +
-          "  server can decrypt the key at launch. Anyone who can read that file + your\n" +
-          "  ~/.dexalot/config.toml can use the wallet — keep both private.",
-      );
+  const env = ctx.encrypted && ctx.passphrase ? { DEXALOT_KEYSTORE_PASSWORD: ctx.passphrase } : undefined;
+  for (const client of selected) {
+    try {
+      runSetup({ client: client as ClientId, profile: ctx.profileName, modules: "all", readOnly, env });
+    } catch (err) {
+      errorLine(`  Could not register ${CLIENT_NAMES[client as ClientId]}: ${(err as Error).message}`);
     }
-  } catch (err) {
-    errorLine(`  Could not register client: ${(err as Error).message}`);
-    errorLine("  You can do it later with: dexalot setup --client <name>");
+  }
+  if (env) {
+    outputLine(
+      "  Note: your passphrase was written into each selected client's config so the\n" +
+        "  server can decrypt the key at launch. Anyone who can read that file + your\n" +
+        "  ~/.dexalot/config.toml can use the wallet — keep both private.",
+    );
   }
 }
 
