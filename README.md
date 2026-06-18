@@ -60,23 +60,23 @@ npx -y @dexalot/trade-mcp setup --client claude-desktop   # or: claude-code | cu
 
 It starts **`--read-only` on mainnet** — no wallet needed for market data, analytics, and balance reads.
 
-### Enable trading (add a wallet)
-
-**1. Create a profile.** The interactive wizard asks for a profile name (e.g. `live`), a network, and your wallet's private key — and offers to encrypt it at rest:
+### Enable trading (add a wallet) — one command
 
 ```bash
 npx -y @dexalot/trade-cli config init
 ```
 
-This writes the profile to `~/.dexalot/config.toml`. The key stays on your machine and is only used locally to sign transactions. (If you chose encryption, set `DEXALOT_KEYSTORE_PASSWORD` so the server can decrypt it — ideally from your OS keychain.)
+The wizard asks for a profile name, network, and your wallet's private key (input hidden), offers to **encrypt it at rest**, and then offers to **register an MCP client for you** — wiring the profile in (and, for an encrypted key, the passphrase) so you don't hand-edit any config:
 
-**2. Re-register the server with that profile** so the write tools (place/cancel orders, deposits, swaps) load:
-
-```bash
-npx -y @dexalot/trade-mcp setup --client claude-desktop --profile live
+```
+Register an MCP client now? (claude-desktop/cursor/windsurf/vscode/claude-code/skip): claude-desktop
+Enable trading (write tools: orders, deposits, swaps)? (y/N): N
+✓ Configured Claude Desktop
 ```
 
-Restart your AI client. Verify with the prompt *"What are my Dexalot capabilities?"* — it should report `readOnly: false`, `hasWallet: true`.
+The key stays on your machine and is only used to sign locally. The client is registered **`--read-only` by default** — answer `y` to "Enable trading" to expose write tools. Restart your AI client, then ask *"What are my Dexalot capabilities?"* — it should report `hasWallet: true`.
+
+> Prefer to wire it up yourself? Skip the prompt and run `dexalot setup --client <name> --profile <name>` later; for an encrypted key, set `DEXALOT_KEYSTORE_PASSWORD` in the client's env so the server can decrypt at launch.
 
 > **Claude Code** can install the 12 skills + MCP server together in one step instead:
 >

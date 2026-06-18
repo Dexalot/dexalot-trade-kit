@@ -8,8 +8,11 @@ import {
   configFilePath,
   NETWORK_IDS,
   DEXALOT_NETWORKS,
+  runSetup,
+  SUPPORTED_CLIENTS,
+  CLIENT_NAMES,
 } from "@dexalot/trade-core";
-import type { DexalotProfile, DexalotTomlConfig, NetworkId } from "@dexalot/trade-core";
+import type { DexalotProfile, DexalotTomlConfig, NetworkId, ClientId } from "@dexalot/trade-core";
 import { outputLine, errorLine } from "../formatter.js";
 
 function maskKey(key: string): string {
@@ -128,6 +131,7 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
       network,
     };
     let encrypted = false;
+    let passphrase = "";
     if (privateKey) {
       const enc = await prompt(
         rl,
@@ -149,13 +153,11 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
           }
           outputLine("  Encrypting (scrypt)…");
           keystore = new Wallet(privateKey).encryptSync(pass);
+          passphrase = pass;
         }
         profile.encrypted_key = keystore;
         encrypted = true;
-        outputLine(
-          "  → Stored as encrypted_key. At runtime, set DEXALOT_KEYSTORE_PASSWORD to this passphrase\n" +
-            "    (e.g. from your OS keychain) so the MCP server / CLI can decrypt it.\n",
-        );
+        outputLine("  → Stored as encrypted_key (passphrase-protected).\n");
       } else {
         profile.private_key = privateKey;
         outputLine("  → Stored as plaintext private_key.\n");
@@ -183,9 +185,59 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
       `  Private key:   ${privateKey ? (encrypted ? "encrypted (passphrase-protected)" : maskKey(privateKey)) : "(none — read-only)"}`,
     );
     outputLine(`  Default:       ${config.default_profile === profileName ? "yes" : "no"}`);
+
+    // Offer to register the MCP server with an AI client, wiring the profile
+    // (and, for an encrypted key, the passphrase) in automatically.
+    await maybeRegisterClient(rl, { profileName, hasKey: Boolean(privateKey), encrypted, passphrase });
+
     outputLine(`\nNext: dexalot --profile ${profileName} market get-pairs`);
   } finally {
     p.close();
+  }
+}
+
+async function maybeRegisterClient(
+  rl: ReturnType<typeof createInterface>,
+  ctx: { profileName: string; hasKey: boolean; encrypted: boolean; passphrase: string },
+): Promise<void> {
+  const choice = (
+    await prompt(rl, `\nRegister an MCP client now? (${SUPPORTED_CLIENTS.join("/")}/skip)`, "skip")
+  ).toLowerCase();
+  if (choice === "skip" || choice === "") return;
+  if (!SUPPORTED_CLIENTS.includes(choice as ClientId)) {
+    errorLine(`  Unknown client "${choice}". Skipping — register later with: dexalot setup --client <name>`);
+    return;
+  }
+
+  // Safe default: read-only. Writes (place/cancel orders, deposits, swaps) are
+  // an explicit opt-in, and only meaningful when a wallet is configured.
+  let readOnly = true;
+  if (ctx.hasKey) {
+    const writes = await prompt(rl, "Enable trading (write tools: orders, deposits, swaps)? (y/N)", "N");
+    readOnly = writes.toLowerCase() !== "y";
+  }
+
+  const env: Record<string, string> = {};
+  if (ctx.encrypted && ctx.passphrase) env.DEXALOT_KEYSTORE_PASSWORD = ctx.passphrase;
+
+  try {
+    runSetup({
+      client: choice as ClientId,
+      profile: ctx.profileName,
+      modules: "all",
+      readOnly,
+      env: Object.keys(env).length > 0 ? env : undefined,
+    });
+    if (env.DEXALOT_KEYSTORE_PASSWORD) {
+      outputLine(
+        `  Note: your passphrase was written into the ${CLIENT_NAMES[choice as ClientId]} config so the\n` +
+          "  server can decrypt the key at launch. Anyone who can read that file + your\n" +
+          "  ~/.dexalot/config.toml can use the wallet — keep both private.",
+      );
+    }
+  } catch (err) {
+    errorLine(`  Could not register client: ${(err as Error).message}`);
+    errorLine("  You can do it later with: dexalot setup --client <name>");
   }
 }
 
