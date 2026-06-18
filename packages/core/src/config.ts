@@ -10,8 +10,9 @@ import {
   type ModuleId,
   type NetworkId,
 } from "./constants.js";
+import { secretsVaultGet } from "@dexalot/dexalot-sdk/secrets-vault";
 import { ConfigError } from "./utils/errors.js";
-import { readFullConfig } from "./config/toml.js";
+import { readFullConfig, secretsVaultPath } from "./config/toml.js";
 import type { DexalotProfile, RpcOverrideTable } from "./config/toml.js";
 
 export interface CliOptions {
@@ -156,7 +157,36 @@ function loadWallet(toml: DexalotProfile): { privateKey?: string; hasAuth: boole
     return { privateKey: validatePrivateKeyHex(decrypted.privateKey), hasAuth: true };
   }
 
-  // 3. No key at all — read-only is fine.
+  // 3. Secrets vault (SDK secrets-vault, Fernet) — read with the key from the env.
+  //    Like the encrypted_key path, failures are deferred to first wallet use.
+  if (toml.key_source === "vault") {
+    const vaultKey = process.env.DEXALOT_VAULT_KEY;
+    if (!vaultKey) {
+      return {
+        hasAuth: false,
+        walletError: new ConfigError(
+          "Profile uses the secrets vault but DEXALOT_VAULT_KEY is not set.",
+          "Set DEXALOT_VAULT_KEY to the vault key printed during `dexalot config init` " +
+            "(e.g. source it from your OS keychain). Public reads work without it.",
+        ),
+      };
+    }
+    const path = toml.vault_path?.trim() || secretsVaultPath();
+    const secretName = toml.vault_secret_name?.trim() || "PRIVATE_KEY";
+    const result = secretsVaultGet(path, secretName, vaultKey);
+    if (!result.success || result.data == null) {
+      return {
+        hasAuth: false,
+        walletError: new ConfigError(
+          `Failed to read "${secretName}" from the secrets vault — wrong DEXALOT_VAULT_KEY or missing entry.`,
+          "Check DEXALOT_VAULT_KEY, or re-run `dexalot config init` to recreate the profile.",
+        ),
+      };
+    }
+    return { privateKey: validatePrivateKeyHex(result.data), hasAuth: true };
+  }
+
+  // 4. No key at all — read-only is fine.
   return { hasAuth: false };
 }
 

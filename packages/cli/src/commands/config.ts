@@ -6,6 +6,7 @@ import {
   readFullConfig,
   writeFullConfig,
   configFilePath,
+  secretsVaultPath,
   NETWORK_IDS,
   DEXALOT_NETWORKS,
   runSetup,
@@ -13,6 +14,7 @@ import {
   CLIENT_NAMES,
 } from "@dexalot/trade-core";
 import type { DexalotProfile, DexalotTomlConfig, NetworkId, ClientId } from "@dexalot/trade-core";
+import { generateSecretsVaultKey, secretsVaultSet } from "@dexalot/dexalot-sdk/secrets-vault";
 import { outputLine, errorLine } from "../formatter.js";
 
 function maskKey(key: string): string {
@@ -86,7 +88,7 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
   const p = createPrompter();
   const rl = p.rl;
   let regCtx:
-    | { profileName: string; isDefaultProfile: boolean; hasKey: boolean; encrypted: boolean; passphrase: string }
+    | { profileName: string; isDefaultProfile: boolean; hasKey: boolean; runtimeEnv?: Record<string, string> }
     | null = null;
   try {
     outputLine(`Dexalot CLI — interactive profile setup`);
@@ -133,34 +135,30 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
     const profile: DexalotProfile = {
       network,
     };
-    let encrypted = false;
-    let passphrase = "";
+    let runtimeEnv: Record<string, string> | undefined;
     if (privateKey) {
       const enc = await prompt(
         rl,
-        "Encrypt the key at rest with a passphrase? (Y/n)",
+        "Encrypt the key at rest in the Dexalot secrets vault? (Y/n)",
         "Y",
       );
       if (enc.toLowerCase() !== "n") {
-        let keystore = "";
-        while (!keystore) {
-          const pass = await promptSecret(p, "Passphrase");
-          if (!pass) {
-            errorLine("  Passphrase cannot be empty. Try again.");
-            continue;
-          }
-          const confirm = await promptSecret(p, "Confirm passphrase");
-          if (pass !== confirm) {
-            errorLine("  Passphrases did not match. Try again.");
-            continue;
-          }
-          outputLine("  Encrypting (scrypt)…");
-          keystore = new Wallet(privateKey).encryptSync(pass);
-          passphrase = pass;
+        const vaultKey = generateSecretsVaultKey();
+        const secretName = `PRIVATE_KEY_${profileName}`;
+        const set = secretsVaultSet(secretsVaultPath(), secretName, privateKey, vaultKey);
+        if (!set.success) {
+          errorLine("  Vault write failed; storing as plaintext private_key instead.");
+          profile.private_key = privateKey;
+        } else {
+          profile.key_source = "vault";
+          profile.vault_secret_name = secretName;
+          runtimeEnv = { DEXALOT_VAULT_KEY: vaultKey };
+          outputLine(`  → Encrypted into the secrets vault (${secretsVaultPath()}) as "${secretName}".`);
+          outputLine("\n  ⚠ Vault key — it decrypts your key, is NOT stored in the vault, and cannot");
+          outputLine("    be recovered. Save it now (password manager / OS keychain):");
+          outputLine(`      DEXALOT_VAULT_KEY=${vaultKey}`);
+          outputLine("    It's written into any MCP client you register below.\n");
         }
-        profile.encrypted_key = keystore;
-        encrypted = true;
-        outputLine("  → Stored as encrypted_key (passphrase-protected).\n");
       } else {
         profile.private_key = privateKey;
         outputLine("  → Stored as plaintext private_key.\n");
@@ -184,12 +182,15 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
 
     outputLine(`✓ Saved profile "${profileName}" to ${configFilePath()}`);
     outputLine(`  Network:       ${network}`);
-    outputLine(
-      `  Private key:   ${privateKey ? (encrypted ? "encrypted (passphrase-protected)" : maskKey(privateKey)) : "(none — read-only)"}`,
-    );
+    const keyStatus = !privateKey
+      ? "(none — read-only)"
+      : profile.key_source === "vault"
+        ? "encrypted (secrets vault)"
+        : maskKey(privateKey);
+    outputLine(`  Private key:   ${keyStatus}`);
     const isDefaultProfile = config.default_profile === profileName;
     outputLine(`  Default:       ${isDefaultProfile ? "yes" : "no"}`);
-    regCtx = { profileName, isDefaultProfile, hasKey: Boolean(privateKey), encrypted, passphrase };
+    regCtx = { profileName, isDefaultProfile, hasKey: Boolean(privateKey), runtimeEnv };
   } finally {
     p.close();
   }
@@ -273,8 +274,7 @@ async function registerClients(ctx: {
   profileName: string;
   isDefaultProfile: boolean;
   hasKey: boolean;
-  encrypted: boolean;
-  passphrase: string;
+  runtimeEnv?: Record<string, string>;
 }): Promise<void> {
   const items = SUPPORTED_CLIENTS.map((c) => ({
     value: c,
@@ -302,7 +302,7 @@ async function registerClients(ctx: {
     readOnly = ans.toLowerCase() !== "y";
   }
 
-  const env = ctx.encrypted && ctx.passphrase ? { DEXALOT_KEYSTORE_PASSWORD: ctx.passphrase } : undefined;
+  const env = ctx.runtimeEnv && Object.keys(ctx.runtimeEnv).length > 0 ? ctx.runtimeEnv : undefined;
   // Only pin --profile when it isn't the default — otherwise the server picks up
   // default_profile implicitly (and the entry is named "dexalot-trade-mcp", not
   // "...-<profile>"). Users only specify a profile to override the default.
@@ -316,9 +316,9 @@ async function registerClients(ctx: {
   }
   if (env) {
     outputLine(
-      "  Note: your passphrase was written into each selected client's config so the\n" +
-        "  server can decrypt the key at launch. Anyone who can read that file + your\n" +
-        "  ~/.dexalot/config.toml can use the wallet — keep both private.",
+      "  Note: the vault key (DEXALOT_VAULT_KEY) was written into each selected client's\n" +
+        "  config so the server can decrypt the key at launch. Anyone who can read that\n" +
+        "  file + your secrets vault can use the wallet — keep both private.",
     );
   }
 }

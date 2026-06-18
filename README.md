@@ -66,7 +66,7 @@ It starts **`--read-only` on mainnet** — no wallet needed for market data, ana
 npx -y @dexalot/trade-cli config init
 ```
 
-The wizard asks for a profile name, network, and your wallet's private key (input hidden), offers to **encrypt it at rest**, then shows a **checkbox to register MCP clients for you** — wiring the profile in (and, for an encrypted key, the passphrase) so you don't hand-edit any config. Pick one or several:
+The wizard asks for a profile name, network, and your wallet's private key (input hidden), then offers to **encrypt it in the Dexalot secrets vault** (`~/.dexalot/secrets_vault.json`, Fernet-encrypted via the SDK). It prints a one-time **vault key** — save it; it decrypts your key and is not stored anywhere. Finally a **checkbox registers MCP clients for you**, wiring the profile in (and the vault key) so you don't hand-edit any config. Pick one or several:
 
 ```
 Register the MCP server with which clients?
@@ -80,9 +80,9 @@ Enable trading (write tools: orders, deposits, swaps)? (y/N): N
 ✓ Configured Claude Desktop
 ```
 
-The key stays on your machine and is only used to sign locally. The client is registered **`--read-only` by default** — answer `y` to "Enable trading" to expose write tools. Restart your AI client, then ask *"What are my Dexalot capabilities?"* — it should report `hasWallet: true`.
+The key stays on your machine (encrypted in the vault) and is only used to sign locally. The client is registered **`--read-only` by default** — answer `y` to "Enable trading" to expose write tools. Restart your AI client, then ask *"What are my Dexalot capabilities?"* — it should report `hasWallet: true`.
 
-> Prefer to wire it up yourself? Skip the prompt and run `dexalot setup --client <name> --profile <name>` later; for an encrypted key, set `DEXALOT_KEYSTORE_PASSWORD` in the client's env so the server can decrypt at launch.
+> Prefer to wire it up yourself? Skip the checkbox and run `dexalot setup --client <name> --profile <name>` later; set `DEXALOT_VAULT_KEY` (the printed vault key) in the client's env so the server can decrypt at launch.
 
 > **Claude Code** can install the 12 skills + MCP server together in one step instead:
 >
