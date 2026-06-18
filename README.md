@@ -66,10 +66,16 @@ It starts **`--read-only` on mainnet** — no wallet needed for market data, ana
 npx -y @dexalot/trade-cli config init
 ```
 
-The wizard asks for a profile name, network, and your wallet's private key (input hidden), offers to **encrypt it at rest**, and then offers to **register an MCP client for you** — wiring the profile in (and, for an encrypted key, the passphrase) so you don't hand-edit any config:
+The wizard asks for a profile name, network, and your wallet's private key (input hidden), offers to **encrypt it at rest**, then shows a **checkbox to register MCP clients for you** — wiring the profile in (and, for an encrypted key, the passphrase) so you don't hand-edit any config. Pick one or several:
 
 ```
-Register an MCP client now? (claude-desktop/cursor/windsurf/vscode/claude-code/skip): claude-desktop
+Register the MCP server with which clients?
+  (↑/↓ move · space toggle · enter confirm)
+ › ◉ Claude Desktop
+   ◯ Cursor
+   ◯ Windsurf
+   ◯ VS Code
+   ◯ Claude Code CLI
 Enable trading (write tools: orders, deposits, swaps)? (y/N): N
 ✓ Configured Claude Desktop
 ```
@@ -170,6 +176,15 @@ packages/
 ├── core/    # @dexalot/trade-core — shared client, tool registry, config
 ├── mcp/     # @dexalot/trade-mcp  — MCP server binary
 └── cli/     # @dexalot/trade-cli  — CLI binary
+```
+
+Local QA scripts (no funds, nothing written to your real config — they use an ephemeral wallet and a temp HOME):
+
+```bash
+./scripts/test-reads.sh             # public + signed reads across modules
+./scripts/test-mcp-stdio.sh         # JSON-RPC handshake + sample tool calls
+./scripts/test-mcp-registration.sh  # claude mcp add → get → list → remove lifecycle
+./scripts/test-config-init.sh       # config init wizard + client auto-register (PTY)
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the layered architecture, mountpoint mapping, and SDK boundary rules.

@@ -35,11 +35,18 @@ Interactive wizard that prompts for:
 - network: `mainnet`, `testnet`, or `devnet`
 - wallet private key (masked input; optional — leave blank for read-only public data)
 - whether to **encrypt** the key (recommended): if yes, the wizard stores an `encrypted_key`
-  (scrypt+AES keystore) instead of a plaintext `private_key`. The user must then provide the
-  passphrase at runtime via the `DEXALOT_KEYSTORE_PASSWORD` env var (ideally sourced from an OS
-  keychain) so the CLI / MCP server can decrypt it.
+  (scrypt+AES keystore) instead of a plaintext `private_key`. The CLI / MCP server decrypt it at
+  runtime using the passphrase from the `DEXALOT_KEYSTORE_PASSWORD` env var.
+- finally, a **checkbox to auto-register MCP clients** (Claude Desktop / Code / Cursor / VS Code /
+  Windsurf). When chosen, the wizard writes each client's config with `--profile`, `--modules all`,
+  `--read-only` by default (answer `y` to "Enable trading" for write tools), and — for an encrypted
+  key — `DEXALOT_KEYSTORE_PASSWORD` in that client's `env` so the server decrypts at launch. No
+  manual JSON editing or passphrase env step is needed.
 
 If devnet is chosen the wizard also accepts a custom `api_base_url`.
+
+A locked encrypted profile (no `DEXALOT_KEYSTORE_PASSWORD`) does **not** block public/read-only
+commands — the wallet error is deferred until a signing/write tool actually needs the key.
 
 ## Step 4 — Confirm capabilities the agent will use
 
