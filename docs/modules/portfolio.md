@@ -1,6 +1,6 @@
 # `portfolio` module
 
-Wallet balances on the Dexalot subnet and connected chains, plus USD pricing and balance proofs.
+Wallet balances on the Dexalot Dexalot L1 and connected chains, plus USD pricing and balance proofs.
 
 | Tool | CLI | Route |
 |---|---|---|
@@ -15,6 +15,6 @@ Wallet balances on the Dexalot subnet and connected chains, plus USD pricing and
 | `portfolio_get_balance_proof` | `dexalot portfolio get-balance-proof --symbol T` | SIGNED_API `GET balanceproof` |
 
 **Notes:**
-- All balance reads route through the SDK (contract reads on the Portfolio subnet contract or on-chain ERC20/native reads).
+- All balance reads route through the SDK (contract reads on the Portfolio Dexalot L1 contract or on-chain ERC20/native reads).
 - USD pricing endpoints now route through the SDK (`getTokenUsdPrices`, `getTokenPriceHistory`, `getTokenHourlyPriceHistory`). Public (no wallet); the SDK applies a client-side `from`/`to` window (unix seconds) over the canonical ascending `PricePoint[]` series.
 - Balance proof remains REST-only (no SDK method) and requires the signed REST header (wallet must be configured).

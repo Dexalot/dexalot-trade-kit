@@ -42,7 +42,7 @@ Dexalot Trade Kit is an AI-powered trading toolkit for the Dexalot DEX, shipping
    │  Dexalot REST API      │  │  @dexalot/dexalot-sdk│
    │  api.dexalot.com       │  │  (ethers v6)         │
    │  api.dexalot-test.com  │  │  Contract reads/writes
-   │  api.dexalot-dev.com   │  │  on the Dexalot subnet
+   │  api.dexalot-dev.com   │  │  on the Dexalot Dexalot L1
    └────────────────────────┘  └──────────────────────┘
 ```
 
@@ -122,7 +122,7 @@ The CLI gets the same `ToolSpec[]` via `createToolRunner` and translates `dexalo
 | `market_get_oldest_candle_ts`, `market_get_app_settings`, `market_get_blacklisted_addresses` | no SDK method |
 | `portfolio_get_balance_proof` | no SDK method (Merkle-proof signing endpoint) |
 | all `analytics`, `info`, `leaderboard`, `vaults`, `trader_history`, `pnl` | no SDK methods (the SDK is a trading/account SDK; these are backend analytics/social endpoints) |
-| `rewards_*` subnet/breakdown/signature | signed REST; `rewards_get_stake_merkl` → external Merkl API |
+| `rewards_*` subnet-incentives/breakdown/signature | signed REST; `rewards_get_stake_merkl` → external Merkl API |
 
 The SDK is initialized **lazily** on the first call that needs it — including the now-SDK-routed market reads. Pure-REST tools (analytics, info, etc.) never trigger SDK init.
 

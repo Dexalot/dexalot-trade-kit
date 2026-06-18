@@ -36,7 +36,7 @@ It runs as a **local process** with your wallet private key stored only on your 
 | `clob.read` | 4 | Open orders, order history, order detail, lookup by client id | ✓ |
 | `clob.write` | 9 | Place / cancel / replace / batch orders on the TradePairs contract | ✓ |
 | `swap` | 4 | RFQ swap pairs, soft / firm quotes, on-chain execute | mixed |
-| `portfolio` | 9 | Subnet + multi-chain balances, USD prices, balance proof | mixed |
+| `portfolio` | 9 | Dexalot L1 + multi-chain balances, USD prices, balance proof | mixed |
 | `transfer` | 8 | Cross-chain deposits / withdrawals, gas, P2P, bridge fees, history | ✓ |
 | `analytics` | 7 | Daily volumes, top tokens / pairs, stats, burned ALOT, APYs | — |
 | `leaderboard` | 12 | Trader rewards leaderboard, single-trader info / breakdown, claim signatures | mixed |
