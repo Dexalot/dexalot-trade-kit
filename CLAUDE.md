@@ -42,9 +42,9 @@ When adding a tool: **check the SDK surface first** (`grep getX node_modules/@de
 - The SDK swallows REST error bodies — `swap_get_quote`/`get_firm_quote` lose the backend `reasonCode` (FQ-xxx) and show a generic "status 400". Accepted cost of SDK-first; REST-routed tools keep full error detail via the REST client's `reasonCode` parsing.
 - **SDK 0.6.0 CLOB order types (PR #22).** `clob_place_order` / `clob_place_order_list` expose optional `timeInForce` (GTC/FOK/IOC/PO) + `stp` (CANCEL_TAKER/MAKER/BOTH/NONE), defaulting to GTC/CANCEL_TAKER; only LIMIT requires a price (MARKET no longer pre-rejected); `replace_order` inherits the original's type/TIF/stp. `OrderStatus` was renumbered to match the contract (NEW=0…CANCEL_REJECT=7) — the agent passes SDK string labels through, so no agent-side enum logic changed. Contract reverts now arrive as `<code>: <description>`.
 
-### Lazy signature cache
+### Signature cache (eager when a wallet exists)
 
-`DexalotRestClient.ensureSignatureHeader()` signs the static string `"dexalot"` once per process and caches `<address>:<signature>`. Reused for every signed REST call. Tools that don't need a wallet (market, analytics, info, swap-pairs, swap-soft-quote) never trigger signing — `--read-only` with no key works cleanly.
+`DexalotRestClient` signs the static string `"dexalot"` once and caches `<address>:<signature>` (a local, gasless `signMessage`). When a wallet is configured it signs **eagerly in the constructor** (the `x-signature` header is ready before the first request); `ensureSignatureHeader()` just awaits the cached promise. No wallet → no signing happens, and `--read-only` with no key works cleanly; signed endpoints surface `config.walletError` only when actually called.
 
 ### Tool registry pattern
 

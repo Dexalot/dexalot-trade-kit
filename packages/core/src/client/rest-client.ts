@@ -76,7 +76,8 @@ export class DexalotRestClient {
   private readonly rateLimiter: RateLimiter;
   private readonly dispatcher?: ProxyAgent;
   private wallet?: Wallet;
-  private cachedSignatureHeader?: string;
+  /** Cached `<address>:<signature>` header, signed once and reused. */
+  private signatureHeaderPromise?: Promise<string>;
 
   public constructor(config: DexalotConfig) {
     this.config = config;
@@ -88,7 +89,20 @@ export class DexalotRestClient {
       this.wallet = new Wallet(config.privateKey);
       // Surface the address back to the config (set once at startup)
       this.config.address = this.wallet.address;
+      // Eagerly sign the static auth message so the x-signature header is ready
+      // before the first signed request (a local, gasless signMessage). Awaited
+      // lazily by ensureSignatureHeader; the .catch keeps an early failure from
+      // becoming an unhandled rejection — it's re-thrown when actually awaited.
+      this.signatureHeaderPromise = this.computeSignatureHeader();
+      this.signatureHeaderPromise.catch(() => { /* surfaced at ensureSignatureHeader */ });
     }
+  }
+
+  private async computeSignatureHeader(): Promise<string> {
+    // SDK timestampedAuth flag is currently disabled by default (backend hasn't shipped support).
+    // When enabled, sign `${message}${ts}` and additionally send `x-timestamp: <ts>`.
+    const signature = await this.wallet!.signMessage(DEXALOT_SIGNATURE_MESSAGE);
+    return `${this.wallet!.address}:${signature}`;
   }
 
   public get baseUrl(): string {
@@ -180,9 +194,8 @@ export class DexalotRestClient {
    * Throws ConfigError if no wallet is configured.
    */
   private async ensureSignatureHeader(): Promise<string> {
-    if (this.cachedSignatureHeader) return this.cachedSignatureHeader;
     if (!this.wallet) {
-      // A locked encrypted_key profile surfaces its specific guidance here,
+      // A locked vault / encrypted profile surfaces its specific guidance here,
       // rather than failing every (public) command at config-load time.
       throw this.config.walletError ?? new ConfigError(
         "Signed Dexalot endpoint requires a wallet, but no private key was loaded.",
@@ -190,12 +203,10 @@ export class DexalotRestClient {
         "If you only need public data, use --read-only with public modules (market, analytics, info).",
       );
     }
-    // SDK timestampedAuth flag is currently disabled by default (backend hasn't shipped support).
-    // When enabled, sign `${message}${ts}` and additionally send `x-timestamp: <ts>`.
-    const message = DEXALOT_SIGNATURE_MESSAGE;
-    const signature = await this.wallet.signMessage(message);
-    this.cachedSignatureHeader = `${this.wallet.address}:${signature}`;
-    return this.cachedSignatureHeader;
+    // Eagerly populated in the constructor when a wallet exists; the ??= covers
+    // any path where it wasn't (defensive — re-signs the same static message).
+    this.signatureHeaderPromise ??= this.computeSignatureHeader();
+    return this.signatureHeaderPromise;
   }
 
   /**
