@@ -140,7 +140,7 @@ export class NetworkError extends DexalotMcpError {
 export const DEXALOT_ERROR_SUGGESTIONS: ReadonlyArray<{ pattern: RegExp; suggestion: string }> = [
   {
     pattern: /insufficient\s+(funds|balance)/i,
-    suggestion: "Check balances with portfolio_get_balance. If funds are on another chain, use transfer_deposit to bridge to the subnet.",
+    suggestion: "Check balances with portfolio_get_balance. If funds are on another chain, use transfer_deposit to bridge to Dexalot L1.",
   },
   {
     pattern: /not\s+whitelisted|kyc/i,
