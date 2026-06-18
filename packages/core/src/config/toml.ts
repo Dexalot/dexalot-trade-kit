@@ -19,6 +19,17 @@ export interface DexalotProfile {
    * for at-rest safety: the file alone is useless without the passphrase.
    */
   encrypted_key?: string;
+  /**
+   * Key storage backend. `"vault"` means the private key lives in the Dexalot
+   * secrets vault (SDK `secrets-vault`, Fernet-encrypted) and is read at runtime
+   * with the Fernet key from the DEXALOT_VAULT_KEY env var. Absent → the key (if
+   * any) comes from private_key / encrypted_key / DEXALOT_PRIVATE_KEY.
+   */
+  key_source?: "vault";
+  /** Secret name to read from the vault (default "PRIVATE_KEY"). Used when key_source = "vault". */
+  vault_secret_name?: string;
+  /** Override the vault file path (default ~/.dexalot/secrets_vault.json). */
+  vault_path?: string;
   /** Network to target. Resolved into api_base_url and SDK parentEnv. */
   network?: string;
   /** Explicit override of the REST API base URL (e.g. for devnet). Takes precedence over network. */
@@ -46,6 +57,11 @@ export interface DexalotTomlConfig {
 
 export function configFilePath(): string {
   return join(homedir(), ".dexalot", "config.toml");
+}
+
+/** Default path for the SDK secrets vault (Fernet-encrypted key-value store). */
+export function secretsVaultPath(): string {
+  return join(homedir(), ".dexalot", "secrets_vault.json");
 }
 
 /**

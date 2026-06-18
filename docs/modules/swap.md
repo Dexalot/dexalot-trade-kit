@@ -1,6 +1,6 @@
 # `swap` module
 
-RFQ swaps against Dexalot market makers — atomic settlement on a single chain. Differs from `clob` which sits on a per-pair order book on the subnet.
+RFQ swaps against Dexalot market makers — atomic settlement on a single chain. Differs from `clob` which sits on a per-pair order book on the Dexalot L1.
 
 | Tool | CLI | Route |
 |---|---|---|

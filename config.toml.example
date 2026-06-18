@@ -4,10 +4,12 @@
 # Or run the interactive wizard (recommended — it can encrypt the key at rest):
 #   dexalot config init
 #
-# Encrypted keys: `config init` offers to store an `encrypted_key` (scrypt+AES JSON
-# keystore) instead of a plaintext `private_key`. At runtime set the passphrase via
-#   export DEXALOT_KEYSTORE_PASSWORD="..."   (e.g. from your OS keychain)
-# so the CLI / MCP server can decrypt it. The file alone is useless without it.
+# Encrypted keys: `config init` offers to store the key in the Dexalot secrets
+# vault (~/.dexalot/secrets_vault.json, Fernet) and sets `key_source = "vault"` on
+# the profile instead of a plaintext `private_key`. At runtime set the vault key:
+#   export DEXALOT_VAULT_KEY="..."          (e.g. from your OS keychain)
+# so the CLI / MCP server can decrypt it. The vault file alone is useless without it.
+# (Legacy `encrypted_key` ethers-keystore profiles are still read.)
 # No key at all is fine too — public/read-only tools still work.
 
 # Which profile to use when --profile is not specified.

@@ -38,7 +38,7 @@ See [config.toml.example](../config.toml.example) for the canonical template. Ru
 | `--network` | API base | SDK `parentEnv` (default) | Notes |
 |---|---|---|---|
 | `mainnet` | `https://api.dexalot.com/api` | `production-multi-avax` | Production |
-| `testnet` | `https://api.dexalot-test.com/api` | `fuji-multi-avax` | Fuji subnet |
+| `testnet` | `https://api.dexalot-test.com/api` | `fuji-multi-avax` | Fuji L1 |
 | `devnet` | `https://api.dexalot-dev.com/api` | `fuji-multi-avax` | Internal — use for smoke tests |
 
 `--testnet` and `--devnet` are shorthands for `--network testnet|devnet`. `--live` forces mainnet (refuses to start if the profile resolves to testnet/devnet).

@@ -121,7 +121,7 @@ export const MODULE_DESCRIPTIONS: Record<CliModuleKey, string> = {
   "clob.read":      "CLOB order queries (open orders, order detail by id/clientOrderId, order history)",
   "clob.write":     "CLOB order placement and cancellation (place, replace, cancel, batch ops) — on-chain writes",
   swap:             "RFQ swap pairs, soft/firm quotes, and on-chain swap execution",
-  portfolio:        "Portfolio balances (subnet + multi-chain), USD prices, balance proofs",
+  portfolio:        "Portfolio balances (Dexalot L1 + multi-chain), USD prices, balance proofs",
   transfer:         "Deposits, withdrawals, gas top-up/removal, portfolio-to-portfolio transfers, transfer history",
   analytics:        "Daily volumes, top tokens/pairs, stats, 24h stats, burned-ALOT data, trader APYs",
   leaderboard:      "Trader leaderboard, rewards per pair, per-trader breakdowns, claim signatures",

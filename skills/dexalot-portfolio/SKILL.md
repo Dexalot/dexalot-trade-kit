@@ -1,6 +1,6 @@
 ---
 name: dexalot-portfolio
-description: "Use this skill when the user asks for: Dexalot subnet balance for a token (total/available/locked), all subnet balances for a wallet, on-chain wallet balance on Avalanche/Ethereum/Arbitrum/Dexalot L1, all token balances on a connected chain, every balance across every connected chain, current USD prices for Dexalot-listed tokens, daily or hourly USD price history, or a signed Merkle balance proof. Most commands require a wallet (DEXALOT_PRIVATE_KEY or profile private_key); USD price queries do not. Do NOT use for placing or cancelling orders (dexalot-clob), depositing/withdrawing between chains (dexalot-transfer), RFQ swap quotes (dexalot-swap), trading-volume rankings (dexalot-analytics), or PnL across a date range (dexalot-pnl)."
+description: "Use this skill when the user asks for: Dexalot L1 balance for a token (total/available/locked), all Dexalot L1 balances for a wallet, on-chain wallet balance on Avalanche/Ethereum/Arbitrum/Dexalot L1, all token balances on a connected chain, every balance across every connected chain, current USD prices for Dexalot-listed tokens, daily or hourly USD price history, or a signed Merkle balance proof. Most commands require a wallet (DEXALOT_PRIVATE_KEY or profile private_key); USD price queries do not. Do NOT use for placing or cancelling orders (dexalot-clob), depositing/withdrawing between chains (dexalot-transfer), RFQ swap quotes (dexalot-swap), trading-volume rankings (dexalot-analytics), or PnL across a date range (dexalot-pnl)."
 license: MIT
 metadata:
   author: dexalot-trade-kit
@@ -19,7 +19,7 @@ metadata:
 
 # Dexalot Portfolio CLI
 
-Wallet balance queries across the Dexalot subnet and every connected chain, plus USD pricing and balance proofs.
+Wallet balance queries across the Dexalot L1 and every connected chain, plus USD pricing and balance proofs.
 
 **Skill routing:**
 - Balances & pricing → `dexalot-portfolio` (this skill)
@@ -36,15 +36,15 @@ Follow [`../_shared/preflight.md`](../_shared/preflight.md). Confirm a profile w
 
 | Command | Auth | Description |
 |---|:-:|---|
-| `dexalot portfolio get-balance --token T [--address A]` | ✓ | Subnet balance for one token (total / available / locked) |
-| `dexalot portfolio get-all-balances [--address A]` | ✓ | Every subnet balance for the wallet |
+| `dexalot portfolio get-balance --token T [--address A]` | ✓ | Dexalot L1 balance for one token (total / available / locked) |
+| `dexalot portfolio get-all-balances [--address A]` | ✓ | Every Dexalot L1 balance for the wallet |
 | `dexalot portfolio get-chain-balance --chain C --token T [--address A]` | ✓ | One token on one connected chain |
 | `dexalot portfolio get-chain-balances --chain C [--address A]` | ✓ | Every token on one connected chain |
 | `dexalot portfolio get-all-chain-balances [--address A]` | ✓ | Every token across every connected chain (slow — cache the result) |
 | `dexalot portfolio get-token-usd-prices` | — | Current USD prices for every Dexalot-listed token |
 | `dexalot portfolio get-token-usd-price-history --token T` | — | Daily USD price history for one token |
 | `dexalot portfolio get-token-hourly-usd-price-history --token T` | — | Hourly USD price history for one token (last 7 days) |
-| `dexalot portfolio get-balance-proof --symbol T [--traderaddress A]` | ✓ | Signed Merkle proof of subnet balance |
+| `dexalot portfolio get-balance-proof --symbol T [--traderaddress A]` | ✓ | Signed Merkle proof of Dexalot L1 balance |
 
 Action aliases: `balances`, `usd-prices`, `usd-price-history`, `hourly-usd-price-history`, `balance-proof`.
 
@@ -59,13 +59,13 @@ The `--chain` parameter for `get-chain-balance` / `get-chain-balances` accepts t
 | Arbitrum | `Arbitrum` | `Arbitrum Sepolia` |
 | Base | `Base` | `Base Sepolia` |
 | BSC | `BSC` | `BSC Testnet` |
-| Dexalot subnet | `Dexalot L1` | `Dexalot L1` |
+| Dexalot L1 | `Dexalot L1` | `Dexalot L1` |
 
 If you pass an unknown chain name the error message lists the connected chains for the active network.
 
 ## Workflows
 
-### Snapshot a wallet's subnet holdings
+### Snapshot a wallet's Dexalot L1 holdings
 
 ```bash
 dexalot portfolio get-all-balances --profile live
@@ -101,5 +101,5 @@ Returns a Merkle proof + root verifiable off-chain. Used by Dexalot's reserve at
 ## Notes
 
 - Balance reads route through the Dexalot SDK's contract layer. First call triggers SDK initialization (fetching environments / tokens / pairs / deployments) — expect a few-hundred-ms one-time cold start.
-- "Dexalot L1" is the subnet itself; only `ALOT` (native gas) is queryable via `get-chain-balance`. For everything else use `get-balance` or `get-all-balances`.
+- "Dexalot L1" is the chain itself; only `ALOT` (native gas) is queryable via `get-chain-balance`. For everything else use `get-balance` or `get-all-balances`.
 - USD price data has a 30-second cache on the backend; expect minor staleness.

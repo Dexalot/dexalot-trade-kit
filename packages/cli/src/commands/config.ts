@@ -6,10 +6,15 @@ import {
   readFullConfig,
   writeFullConfig,
   configFilePath,
+  secretsVaultPath,
   NETWORK_IDS,
   DEXALOT_NETWORKS,
+  runSetup,
+  SUPPORTED_CLIENTS,
+  CLIENT_NAMES,
 } from "@dexalot/trade-core";
-import type { DexalotProfile, DexalotTomlConfig, NetworkId } from "@dexalot/trade-core";
+import type { DexalotProfile, DexalotTomlConfig, NetworkId, ClientId } from "@dexalot/trade-core";
+import { generateSecretsVaultKey, secretsVaultSet } from "@dexalot/dexalot-sdk/secrets-vault";
 import { outputLine, errorLine } from "../formatter.js";
 
 function maskKey(key: string): string {
@@ -82,6 +87,9 @@ interface InitOptions {
 export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
   const p = createPrompter();
   const rl = p.rl;
+  let regCtx:
+    | { profileName: string; isDefaultProfile: boolean; hasKey: boolean; runtimeEnv?: Record<string, string> }
+    | null = null;
   try {
     outputLine(`Dexalot CLI — interactive profile setup`);
     outputLine(`Config file: ${configFilePath()}\n`);
@@ -127,35 +135,30 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
     const profile: DexalotProfile = {
       network,
     };
-    let encrypted = false;
+    let runtimeEnv: Record<string, string> | undefined;
     if (privateKey) {
       const enc = await prompt(
         rl,
-        "Encrypt the key at rest with a passphrase? (Y/n)",
+        "Encrypt the key at rest in the Dexalot secrets vault? (Y/n)",
         "Y",
       );
       if (enc.toLowerCase() !== "n") {
-        let keystore = "";
-        while (!keystore) {
-          const pass = await promptSecret(p, "Passphrase");
-          if (!pass) {
-            errorLine("  Passphrase cannot be empty. Try again.");
-            continue;
-          }
-          const confirm = await promptSecret(p, "Confirm passphrase");
-          if (pass !== confirm) {
-            errorLine("  Passphrases did not match. Try again.");
-            continue;
-          }
-          outputLine("  Encrypting (scrypt)…");
-          keystore = new Wallet(privateKey).encryptSync(pass);
+        const vaultKey = generateSecretsVaultKey();
+        const secretName = `PRIVATE_KEY_${profileName}`;
+        const set = secretsVaultSet(secretsVaultPath(), secretName, privateKey, vaultKey);
+        if (!set.success) {
+          errorLine("  Vault write failed; storing as plaintext private_key instead.");
+          profile.private_key = privateKey;
+        } else {
+          profile.key_source = "vault";
+          profile.vault_secret_name = secretName;
+          runtimeEnv = { DEXALOT_VAULT_KEY: vaultKey };
+          outputLine(`  → Encrypted into the secrets vault (${secretsVaultPath()}) as "${secretName}".`);
+          outputLine("\n  ⚠ Vault key — it decrypts your key, is NOT stored in the vault, and cannot");
+          outputLine("    be recovered. Save it now (password manager / OS keychain):");
+          outputLine(`      DEXALOT_VAULT_KEY=${vaultKey}`);
+          outputLine("    It's written into any MCP client you register below.\n");
         }
-        profile.encrypted_key = keystore;
-        encrypted = true;
-        outputLine(
-          "  → Stored as encrypted_key. At runtime, set DEXALOT_KEYSTORE_PASSWORD to this passphrase\n" +
-            "    (e.g. from your OS keychain) so the MCP server / CLI can decrypt it.\n",
-        );
       } else {
         profile.private_key = privateKey;
         outputLine("  → Stored as plaintext private_key.\n");
@@ -179,13 +182,144 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
 
     outputLine(`✓ Saved profile "${profileName}" to ${configFilePath()}`);
     outputLine(`  Network:       ${network}`);
-    outputLine(
-      `  Private key:   ${privateKey ? (encrypted ? "encrypted (passphrase-protected)" : maskKey(privateKey)) : "(none — read-only)"}`,
-    );
-    outputLine(`  Default:       ${config.default_profile === profileName ? "yes" : "no"}`);
-    outputLine(`\nNext: dexalot --profile ${profileName} market get-pairs`);
+    const keyStatus = !privateKey
+      ? "(none — read-only)"
+      : profile.key_source === "vault"
+        ? "encrypted (secrets vault)"
+        : maskKey(privateKey);
+    outputLine(`  Private key:   ${keyStatus}`);
+    const isDefaultProfile = config.default_profile === profileName;
+    outputLine(`  Default:       ${isDefaultProfile ? "yes" : "no"}`);
+    regCtx = { profileName, isDefaultProfile, hasKey: Boolean(privateKey), runtimeEnv };
   } finally {
     p.close();
+  }
+
+  // Client registration runs AFTER the readline prompter is closed, so the
+  // raw-mode checkbox owns stdin without readline echoing keystrokes underneath.
+  if (regCtx) {
+    await registerClients(regCtx);
+    // The default profile is used implicitly, so don't make the user type --profile.
+    const profileFlag = regCtx.isDefaultProfile ? "" : ` --profile ${regCtx.profileName}`;
+    outputLine(`\nNext: dexalot${profileFlag} market get-pairs`);
+  }
+}
+
+/**
+ * Multi-select checkbox over a TTY: ↑/↓ to move, space to toggle, enter to
+ * confirm. Returns the selected values. On a non-TTY (piped input) it returns
+ * the pre-checked defaults so scripts stay deterministic.
+ */
+function checkboxSelect(
+  title: string,
+  items: { value: string; label: string; checked?: boolean }[],
+): Promise<string[]> {
+  const checked = new Set(items.filter((i) => i.checked).map((i) => i.value));
+  if (!stdin.isTTY) return Promise.resolve([...checked]);
+
+  return new Promise((resolve, reject) => {
+    let cursor = 0;
+    stdout.write(`${title}\n  (↑/↓ move · space toggle · enter confirm)\n`);
+    const render = (first = false): void => {
+      if (!first) stdout.write(`[${items.length}A`); // move cursor up N lines
+      for (let i = 0; i < items.length; i++) {
+        const pointer = i === cursor ? "›" : " ";
+        const box = checked.has(items[i]!.value) ? "◉" : "◯";
+        stdout.write(`\r[2K ${pointer} ${box} ${items[i]!.label}\n`);
+      }
+    };
+    render(true);
+    stdout.write("[?25l"); // hide cursor
+    const wasRaw = Boolean(stdin.isRaw);
+    stdin.setRawMode(true);
+    stdin.resume();
+    let buf = "";
+    const cleanup = (): void => {
+      stdin.removeListener("data", onData);
+      stdin.setRawMode(wasRaw);
+      stdout.write("[?25h"); // show cursor
+    };
+    const onData = (chunk: Buffer): void => {
+      buf += chunk.toString("utf8");
+      while (buf.length > 0) {
+        if (buf === "" || buf === "[") return; // wait for the rest of an escape seq
+        if (buf.startsWith("[A") || buf.startsWith("[B")) {
+          cursor = buf[2] === "A" ? (cursor - 1 + items.length) % items.length : (cursor + 1) % items.length;
+          buf = buf.slice(3);
+          render();
+          continue;
+        }
+        const ch = buf[0]!;
+        buf = buf.slice(1);
+        if (ch === " ") {
+          const v = items[cursor]!.value;
+          if (checked.has(v)) checked.delete(v); else checked.add(v);
+          render();
+        } else if (ch === "\r" || ch === "\n") {
+          cleanup();
+          resolve(items.filter((i) => checked.has(i.value)).map((i) => i.value));
+          return;
+        } else if (ch === "") {
+          cleanup();
+          reject(new Error("Aborted"));
+          return;
+        }
+      }
+    };
+    stdin.on("data", onData);
+  });
+}
+
+async function registerClients(ctx: {
+  profileName: string;
+  isDefaultProfile: boolean;
+  hasKey: boolean;
+  runtimeEnv?: Record<string, string>;
+}): Promise<void> {
+  const items = SUPPORTED_CLIENTS.map((c) => ({
+    value: c,
+    label: CLIENT_NAMES[c],
+    checked: c === "claude-desktop", // sensible default; user toggles others
+  }));
+  let selected: string[];
+  try {
+    selected = await checkboxSelect("\nRegister the MCP server with which clients?", items);
+  } catch {
+    return; // aborted (Ctrl-C)
+  }
+  if (selected.length === 0) {
+    outputLine("  No clients selected — register later with: dexalot setup --client <name>");
+    return;
+  }
+
+  // Safe default: read-only. Trading (place/cancel orders, deposits, swaps) is
+  // an explicit opt-in, and only meaningful when a wallet is configured.
+  let readOnly = true;
+  if (ctx.hasKey) {
+    const rl2 = createInterface({ input: stdin, output: stdout });
+    const ans = (await rl2.question("Enable trading (write tools: orders, deposits, swaps)? (y/N): ")).trim();
+    rl2.close();
+    readOnly = ans.toLowerCase() !== "y";
+  }
+
+  const env = ctx.runtimeEnv && Object.keys(ctx.runtimeEnv).length > 0 ? ctx.runtimeEnv : undefined;
+  // Only pin --profile when it isn't the default — otherwise the server picks up
+  // default_profile implicitly (and the entry is named "dexalot-trade-mcp", not
+  // "...-<profile>"). Users only specify a profile to override the default.
+  const profile = ctx.isDefaultProfile ? undefined : ctx.profileName;
+  for (const client of selected) {
+    try {
+      runSetup({ client: client as ClientId, profile, modules: "all", readOnly, env });
+    } catch (err) {
+      errorLine(`  Could not register ${CLIENT_NAMES[client as ClientId]}: ${(err as Error).message}`);
+    }
+  }
+  if (env) {
+    outputLine(
+      "  Note: the vault key (DEXALOT_VAULT_KEY) was written into each selected client's\n" +
+        "  config so the server can decrypt the key at launch. Anyone who can read that\n" +
+        "  file + your secrets vault can use the wallet — keep both private.",
+    );
   }
 }
 

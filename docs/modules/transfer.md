@@ -14,6 +14,6 @@ Cross-chain bridge ops (deposit/withdraw), gas management, P2P transfers, histor
 | `transfer_get_combined_transfers` | `dexalot transfer get-combined-transfers` | SDK `getCombinedTransfers` |
 
 **Notes:**
-- `add-gas` withdraws native ALOT from portfolio to wallet (raises gas balance for paying subnet fees). `remove-gas` is the reverse.
-- `transfer-portfolio` is a P2P transfer on the subnet — no bridge involved.
+- `add-gas` withdraws native ALOT from portfolio to wallet (raises gas balance for paying Dexalot L1 fees). `remove-gas` is the reverse.
+- `transfer-portfolio` is a P2P transfer on the Dexalot L1 — no bridge involved.
 - `--read-only` drops the 5 writes.

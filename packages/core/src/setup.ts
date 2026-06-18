@@ -10,6 +10,10 @@ export interface SetupOptions {
   client: ClientId;
   profile?: string;
   modules?: string;
+  /** Add --read-only to the server args (drops write tools). */
+  readOnly?: boolean;
+  /** Environment variables to attach to the server entry (e.g. DEXALOT_KEYSTORE_PASSWORD). */
+  env?: Record<string, string>;
 }
 
 export const CLIENT_NAMES: Record<ClientId, string> = {
@@ -82,22 +86,52 @@ export function getConfigPath(client: ClientId): string | null {
 
 const NPX_PACKAGE = "@dexalot/trade-mcp";
 
+/**
+ * Locate the built MCP server entry when running from a local build (monorepo
+ * or a globally-linked install), so we can write a config that launches the
+ * *current* code rather than fetching the (maybe unpublished) npm package.
+ * Returns null when running from an npx cache / fresh install where the sibling
+ * package isn't on disk — callers then fall back to the npx form.
+ */
+function resolveLocalMcpEntry(): string | null {
+  const cliEntry = process.argv[1];
+  if (!cliEntry) return null;
+  const base = path.dirname(cliEntry);
+  const candidates = [
+    path.resolve(base, "../../mcp/dist/index.js"),        // monorepo: packages/cli/dist -> packages/mcp/dist
+    path.resolve(base, "../../trade-mcp/dist/index.js"),  // installed: @dexalot/trade-cli -> @dexalot/trade-mcp
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return null;
+}
+
+/** Base server invocation: absolute local build if available, else npx (or bare bin for vscode). */
+function serverInvocation(client: ClientId): { command: string; baseArgs: string[] } {
+  const local = resolveLocalMcpEntry();
+  if (local) return { command: process.execPath, baseArgs: [local] };
+  if (client === "vscode") return { command: "dexalot-trade-mcp", baseArgs: [] };
+  // Standalone apps (Claude Desktop, Cursor, Windsurf) have a limited PATH that
+  // often can't find globally-installed npm bins. npx always resolves.
+  return { command: "npx", baseArgs: ["-y", NPX_PACKAGE] };
+}
+
 function buildEntry(
   client: ClientId,
-  args: string[]
+  toolArgs: string[],
+  env?: Record<string, string>
 ): Record<string, unknown> {
-  if (client === "vscode") {
-    // VS Code inherits the terminal PATH - bare command is fine
-    return { type: "stdio", command: "dexalot-trade-mcp", args };
-  }
-  // Standalone apps (Claude Desktop, Cursor, Windsurf) have a limited PATH
-  // that often can't find globally-installed npm bins. Use npx to ensure
-  // the binary is always resolved.
-  return { command: "npx", args: ["-y", NPX_PACKAGE, ...args] };
+  const { command, baseArgs } = serverInvocation(client);
+  const entry: Record<string, unknown> = { command, args: [...baseArgs, ...toolArgs] };
+  if (client === "vscode") entry.type = "stdio";
+  if (env && Object.keys(env).length > 0) entry.env = env;
+  return entry;
 }
 
 function buildArgs(options: SetupOptions): string[] {
   const args: string[] = [];
+  if (options.readOnly) args.push("--read-only");
   if (options.profile) args.push("--profile", options.profile);
   args.push("--modules", options.modules ?? "all");
   return args;
@@ -151,17 +185,23 @@ export function runSetup(options: SetupOptions): void {
   const serverName = options.profile ? `dexalot-trade-mcp-${options.profile}` : "dexalot-trade-mcp";
 
   if (client === "claude-code") {
+    const { command, baseArgs } = serverInvocation(client);
+    const envFlags: string[] = [];
+    for (const [k, v] of Object.entries(options.env ?? {})) envFlags.push("--env", `${k}=${v}`);
     const claudeArgs = [
       "mcp",
       "add",
       "--transport",
       "stdio",
       serverName,
+      ...envFlags,
       "--",
-      "dexalot-trade-mcp",
+      command,
+      ...baseArgs,
       ...args,
     ];
-    process.stdout.write(`Running: claude ${claudeArgs.join(" ")}\n`);
+    // Don't echo env values (they may contain a passphrase) to the terminal.
+    process.stdout.write(`Running: claude mcp add ${serverName} -- ${command} ${[...baseArgs, ...args].join(" ")}\n`);
     execFileSync("claude", claudeArgs, { stdio: "inherit" }); // NOSONAR
     process.stdout.write(`✓ Configured ${name}\n`);
     return;
@@ -172,7 +212,7 @@ export function runSetup(options: SetupOptions): void {
     throw new Error(`${name} is not supported on this platform`);
   }
 
-  const entry = buildEntry(client, args);
+  const entry = buildEntry(client, args, options.env);
   mergeJsonConfig(configPath, serverName, entry);
   process.stdout.write(
     `✓ Configured ${name}\n` +

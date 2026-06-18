@@ -1,6 +1,6 @@
 ---
 name: dexalot-swap
-description: "Use this skill when the user asks for: Dexalot RFQ swap pairs for a chain (Avalanche/Ethereum/Arbitrum), a swap quote (soft/indicative for price discovery or firm/executable with a maker signature and expiry), or to execute a previously-fetched firm RFQ swap on-chain. RFQ swaps execute atomically against a market maker on a single chain — different from CLOB limit orders. Soft quotes work with just a wallet address; firm quotes and execute require a configured wallet (DEXALOT_PRIVATE_KEY or profile private_key). Do NOT use for limit/market CLOB orders (dexalot-clob), cross-chain deposits or withdrawals between connected chains and the Dexalot subnet (dexalot-transfer), or portfolio balance queries (dexalot-portfolio)."
+description: "Use this skill when the user asks for: Dexalot RFQ swap pairs for a chain (Avalanche/Ethereum/Arbitrum), a swap quote (soft/indicative for price discovery or firm/executable with a maker signature and expiry), or to execute a previously-fetched firm RFQ swap on-chain. RFQ swaps execute atomically against a market maker on a single chain — different from CLOB limit orders. Soft quotes work with just a wallet address; firm quotes and execute require a configured wallet (DEXALOT_PRIVATE_KEY or profile private_key). Do NOT use for limit/market CLOB orders (dexalot-clob), cross-chain deposits or withdrawals between connected chains and the Dexalot L1 (dexalot-transfer), or portfolio balance queries (dexalot-portfolio)."
 license: MIT
 metadata:
   author: dexalot-trade-kit
@@ -19,7 +19,7 @@ metadata:
 
 # Dexalot Swap (RFQ) CLI
 
-Request-for-Quote swaps against Dexalot's market makers. Unlike CLOB orders (which sit on a per-pair order book), RFQ swaps are bilateral: a maker quotes a firm price, the taker executes against the maker's signed quote within an expiry window. Settlement is on-chain on the quoted chain (not the subnet).
+Request-for-Quote swaps against Dexalot's market makers. Unlike CLOB orders (which sit on a per-pair order book), RFQ swaps are bilateral: a maker quotes a firm price, the taker executes against the maker's signed quote within an expiry window. Settlement is on-chain on the quoted chain (not the Dexalot L1).
 
 **Skill routing:**
 - RFQ swap quotes + execute → `dexalot-swap` (this skill)

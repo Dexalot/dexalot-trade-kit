@@ -52,6 +52,7 @@ export {
   readFullConfig,
   writeFullConfig,
   configFilePath,
+  secretsVaultPath,
   tomlStringify,
 } from "./config/toml.js";
 export type { DexalotProfile, DexalotTomlConfig, RpcOverrideTable } from "./config/toml.js";

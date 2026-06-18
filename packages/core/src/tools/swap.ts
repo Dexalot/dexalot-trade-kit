@@ -20,7 +20,7 @@ import type { ToolSpec } from "./types.js";
 
 const TOKEN_PROP = {
   type: "string" as const,
-  description: 'Token symbol (canonical Dexalot subnet symbol, e.g. "ALOT", "USDC").',
+  description: 'Token symbol (canonical Dexalot L1 symbol, e.g. "ALOT", "USDC").',
 };
 
 const CHAIN_PROP = {

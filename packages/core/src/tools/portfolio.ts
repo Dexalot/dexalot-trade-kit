@@ -9,11 +9,11 @@ import { ConfigError } from "../utils/errors.js";
 import type { ToolSpec } from "./types.js";
 
 /**
- * Portfolio module: wallet balances on the Dexalot subnet, on connected
+ * Portfolio module: wallet balances on the Dexalot L1, on connected
  * chains, USD prices, and balance proofs.
  *
  * Routing:
- *   - subnet / chain balances → SDK contract reads (via DexalotContractClient)
+ *   - Dexalot L1 / chain balances → SDK contract reads (via DexalotContractClient)
  *   - USD prices, price histories → SDK (getTokenUsdPrices,
  *     getTokenPriceHistory, getTokenHourlyPriceHistory)
  *   - balance proof → SIGNED_API (REST, requires x-signature header)
@@ -21,7 +21,7 @@ import type { ToolSpec } from "./types.js";
 
 const TOKEN_PROP = {
   type: "string" as const,
-  description: 'Token symbol (canonical Dexalot subnet symbol, e.g. "ALOT", "USDC", "AVAX").',
+  description: 'Token symbol (canonical Dexalot L1 symbol, e.g. "ALOT", "USDC", "AVAX").',
 };
 
 const ADDRESS_PROP = {
@@ -43,7 +43,7 @@ export function registerPortfolioTools(): ToolSpec[] {
       name: "portfolio_get_balance",
       module: "portfolio",
       description:
-        "Read a single token's balance on the Dexalot subnet (total / available / locked). Routes through the Portfolio subnet contract via the SDK — requires a wallet because the SDK needs an initialized signer.",
+        "Read a single token's balance on the Dexalot L1 (total / available / locked). Routes through the Dexalot L1 Portfolio contract via the SDK — requires a wallet because the SDK needs an initialized signer.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -70,7 +70,7 @@ export function registerPortfolioTools(): ToolSpec[] {
       name: "portfolio_get_all_balances",
       module: "portfolio",
       description:
-        "Read every subnet balance for an address as { token: { total, available, locked } }. Iterates over the known Portfolio tokens — faster than calling get_balance per token.",
+        "Read every Dexalot L1 balance for an address as { token: { total, available, locked } }. Iterates over the known Portfolio tokens — faster than calling get_balance per token.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -129,7 +129,7 @@ export function registerPortfolioTools(): ToolSpec[] {
       name: "portfolio_get_chain_balances",
       module: "portfolio",
       description:
-        "Read every recognised token's balance on a single connected chain. Useful before/after bridging to confirm what is held off-subnet. Returns a per-token map keyed by symbol.",
+        "Read every recognised token's balance on a single connected chain. Useful before/after bridging to confirm what is held off Dexalot L1. Returns a per-token map keyed by symbol.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -184,7 +184,7 @@ export function registerPortfolioTools(): ToolSpec[] {
       name: "portfolio_get_token_usd_prices",
       module: "portfolio",
       description:
-        "Fetch current USD prices for every Dexalot-listed token (subnet symbol → USD float). No wallet required. Useful for marking-to-USD a portfolio balance.",
+        "Fetch current USD prices for every Dexalot-listed token (Dexalot L1 symbol → USD float). No wallet required. Useful for marking-to-USD a portfolio balance.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -274,7 +274,7 @@ export function registerPortfolioTools(): ToolSpec[] {
       name: "portfolio_get_balance_proof",
       module: "portfolio",
       description:
-        "Fetch a signed Merkle proof attesting a trader's subnet balance for one token. Used by off-chain auditors and for compliance reporting. Requires the wallet's x-signature header. Mainnet-only: the endpoint is not deployed on Dexalot testnet/devnet (returns 404).",
+        "Fetch a signed Merkle proof attesting a trader's Dexalot L1 balance for one token. Used by off-chain auditors and for compliance reporting. Requires the wallet's x-signature header. Mainnet-only: the endpoint is not deployed on Dexalot testnet/devnet (returns 404).",
       isWrite: false,
       inputSchema: {
         type: "object",

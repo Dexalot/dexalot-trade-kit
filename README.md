@@ -36,7 +36,7 @@ It runs as a **local process** with your wallet private key stored only on your 
 | `clob.read` | 4 | Open orders, order history, order detail, lookup by client id | ✓ |
 | `clob.write` | 9 | Place / cancel / replace / batch orders on the TradePairs contract | ✓ |
 | `swap` | 4 | RFQ swap pairs, soft / firm quotes, on-chain execute | mixed |
-| `portfolio` | 9 | Subnet + multi-chain balances, USD prices, balance proof | mixed |
+| `portfolio` | 9 | Dexalot L1 + multi-chain balances, USD prices, balance proof | mixed |
 | `transfer` | 8 | Cross-chain deposits / withdrawals, gas, P2P, bridge fees, history | ✓ |
 | `analytics` | 7 | Daily volumes, top tokens / pairs, stats, burned ALOT, APYs | — |
 | `leaderboard` | 12 | Trader rewards leaderboard, single-trader info / breakdown, claim signatures | mixed |
@@ -60,23 +60,29 @@ npx -y @dexalot/trade-mcp setup --client claude-desktop   # or: claude-code | cu
 
 It starts **`--read-only` on mainnet** — no wallet needed for market data, analytics, and balance reads.
 
-### Enable trading (add a wallet)
-
-**1. Create a profile.** The interactive wizard asks for a profile name (e.g. `live`), a network, and your wallet's private key — and offers to encrypt it at rest:
+### Enable trading (add a wallet) — one command
 
 ```bash
 npx -y @dexalot/trade-cli config init
 ```
 
-This writes the profile to `~/.dexalot/config.toml`. The key stays on your machine and is only used locally to sign transactions. (If you chose encryption, set `DEXALOT_KEYSTORE_PASSWORD` so the server can decrypt it — ideally from your OS keychain.)
+The wizard asks for a profile name, network, and your wallet's private key (input hidden), then offers to **encrypt it in the Dexalot secrets vault** (`~/.dexalot/secrets_vault.json`, Fernet-encrypted via the SDK). It prints a one-time **vault key** — save it; it decrypts your key and is not stored anywhere. Finally a **checkbox registers MCP clients for you**, wiring the profile in (and the vault key) so you don't hand-edit any config. Pick one or several:
 
-**2. Re-register the server with that profile** so the write tools (place/cancel orders, deposits, swaps) load:
-
-```bash
-npx -y @dexalot/trade-mcp setup --client claude-desktop --profile live
+```
+Register the MCP server with which clients?
+  (↑/↓ move · space toggle · enter confirm)
+ › ◉ Claude Desktop
+   ◯ Cursor
+   ◯ Windsurf
+   ◯ VS Code
+   ◯ Claude Code CLI
+Enable trading (write tools: orders, deposits, swaps)? (y/N): N
+✓ Configured Claude Desktop
 ```
 
-Restart your AI client. Verify with the prompt *"What are my Dexalot capabilities?"* — it should report `readOnly: false`, `hasWallet: true`.
+The key stays on your machine (encrypted in the vault) and is only used to sign locally. The client is registered **`--read-only` by default** — answer `y` to "Enable trading" to expose write tools. Restart your AI client, then ask *"What are my Dexalot capabilities?"* — it should report `hasWallet: true`.
+
+> Prefer to wire it up yourself? Skip the checkbox and run `dexalot setup --client <name> --profile <name>` later; set `DEXALOT_VAULT_KEY` (the printed vault key) in the client's env so the server can decrypt at launch.
 
 > **Claude Code** can install the 12 skills + MCP server together in one step instead:
 >
@@ -170,6 +176,15 @@ packages/
 ├── core/    # @dexalot/trade-core — shared client, tool registry, config
 ├── mcp/     # @dexalot/trade-mcp  — MCP server binary
 └── cli/     # @dexalot/trade-cli  — CLI binary
+```
+
+Local QA scripts (no funds, nothing written to your real config — they use an ephemeral wallet and a temp HOME):
+
+```bash
+./scripts/test-reads.sh             # public + signed reads across modules
+./scripts/test-mcp-stdio.sh         # JSON-RPC handshake + sample tool calls
+./scripts/test-mcp-registration.sh  # claude mcp add → get → list → remove lifecycle
+./scripts/test-config-init.sh       # config init wizard + client auto-register (PTY)
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the layered architecture, mountpoint mapping, and SDK boundary rules.
