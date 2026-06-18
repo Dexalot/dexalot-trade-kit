@@ -182,7 +182,9 @@ export class DexalotRestClient {
   private async ensureSignatureHeader(): Promise<string> {
     if (this.cachedSignatureHeader) return this.cachedSignatureHeader;
     if (!this.wallet) {
-      throw new ConfigError(
+      // A locked encrypted_key profile surfaces its specific guidance here,
+      // rather than failing every (public) command at config-load time.
+      throw this.config.walletError ?? new ConfigError(
         "Signed Dexalot endpoint requires a wallet, but no private key was loaded.",
         "Set DEXALOT_PRIVATE_KEY or add private_key to your ~/.dexalot/config.toml profile. " +
         "If you only need public data, use --read-only with public modules (market, analytics, info).",

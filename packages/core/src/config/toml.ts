@@ -12,6 +12,13 @@ export type RpcOverrideTable = Record<string, string[]>;
 export interface DexalotProfile {
   /** 0x-prefixed 32-byte hex private key for signing. Optional when only running read-only public modules. */
   private_key?: string;
+  /**
+   * Encrypted private key — an ethers (scrypt + AES) JSON keystore string. Written by
+   * `dexalot config init` when the user opts to encrypt. Decrypted at runtime with the
+   * passphrase from the DEXALOT_KEYSTORE_PASSWORD env var. Preferred over `private_key`
+   * for at-rest safety: the file alone is useless without the passphrase.
+   */
+  encrypted_key?: string;
   /** Network to target. Resolved into api_base_url and SDK parentEnv. */
   network?: string;
   /** Explicit override of the REST API base URL (e.g. for devnet). Takes precedence over network. */

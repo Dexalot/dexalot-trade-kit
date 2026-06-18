@@ -4,7 +4,7 @@ description: "Use this skill when the user asks to: place a buy or sell order on
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.1.0"
+  version: "0.2.0"
   homepage: "https://app.dexalot.com"
   agent:
     requires:
@@ -47,7 +47,7 @@ When the MCP server runs with `--read-only`, `clob.write` is dropped entirely; o
 
 | Command | Description |
 |---|---|
-| `dexalot clob place-order --pair ALOT/USDC --side BUY --amount 100 --price 0.05 [--type LIMIT\|MARKET] [--waitForReceipt true]` | Single order |
+| `dexalot clob place-order --pair ALOT/USDC --side BUY --amount 100 --price 0.05 [--type LIMIT\|MARKET] [--timeInForce GTC\|FOK\|IOC\|PO] [--stp CANCEL_TAKER\|CANCEL_MAKER\|CANCEL_BOTH\|CANCEL_NONE] [--waitForReceipt true]` | Single order |
 | `dexalot clob place-order-list --orders '[{...}, {...}]'` | Batch place (same-pair, atomic) |
 | `dexalot clob cancel-order --orderId 0x...` | Cancel by internal id |
 | `dexalot clob cancel-order-by-client-id --clientOrderId 0x...` | Cancel by client id |
@@ -58,6 +58,15 @@ When the MCP server runs with `--read-only`, `clob.write` is dropped entirely; o
 | `dexalot clob cancel-add-list --replacements '[...]'` | Batch atomic cancel + add (ladder re-pricing) |
 
 `--waitForReceipt true` (default) blocks until the transaction is mined. Set `false` to return as soon as the tx is broadcast.
+
+### Time-in-force & self-trade prevention
+
+`place-order` and per-order entries in `place-order-list` accept two optional modifiers:
+
+- `--timeInForce` (`type2`): `GTC` (default, good-till-cancelled), `FOK` (fill-or-kill), `IOC` (immediate-or-cancel), `PO` (post-only / maker-only). Ignored for MARKET orders.
+- `--stp` (self-trade prevention): `CANCEL_TAKER` (default), `CANCEL_MAKER`, `CANCEL_BOTH`, `CANCEL_NONE`.
+
+Per-pair allowed types, Post-Only, FOK and self-trade rules are enforced **on-chain** and surface as revert codes (`T-IVOT-01`, `T-POOA-01`, `T-FOKF-01`, `T-STPR-01`), now rendered as `<code>: <description>`. `replace-order` keeps the original order's type/TIF/stp — to change those, cancel and place fresh.
 
 ## Workflows
 

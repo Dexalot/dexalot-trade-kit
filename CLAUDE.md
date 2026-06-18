@@ -40,6 +40,7 @@ When adding a tool: **check the SDK surface first** (`grep getX node_modules/@de
 **Two quirks:**
 - The SDK prepends `/privapi/...` and `/api/...` to its `apiBaseUrl`, so `DexalotContractClient` strips the trailing `/api` before handing the base URL to the SDK.
 - The SDK swallows REST error bodies — `swap_get_quote`/`get_firm_quote` lose the backend `reasonCode` (FQ-xxx) and show a generic "status 400". Accepted cost of SDK-first; REST-routed tools keep full error detail via the REST client's `reasonCode` parsing.
+- **SDK 0.6.0 CLOB order types (PR #22).** `clob_place_order` / `clob_place_order_list` expose optional `timeInForce` (GTC/FOK/IOC/PO) + `stp` (CANCEL_TAKER/MAKER/BOTH/NONE), defaulting to GTC/CANCEL_TAKER; only LIMIT requires a price (MARKET no longer pre-rejected); `replace_order` inherits the original's type/TIF/stp. `OrderStatus` was renumbered to match the contract (NEW=0…CANCEL_REJECT=7) — the agent passes SDK string labels through, so no agent-side enum logic changed. Contract reverts now arrive as `<code>: <description>`.
 
 ### Lazy signature cache
 

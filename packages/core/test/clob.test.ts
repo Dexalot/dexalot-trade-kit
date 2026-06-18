@@ -217,6 +217,31 @@ describe("clob_place_order", () => {
       /side must be/i,
     );
   });
+  it("forwards timeInForce and stp to the SDK (uppercased)", async () => {
+    const { recorded, client, contract } = stub();
+    await tool.handler(
+      { pair: "ALOT/USDC", side: "BUY", amount: 100, price: 0.05, timeInForce: "po", stp: "cancel_maker" },
+      { config: BASE_CONFIG, client, contract },
+    );
+    assert.deepEqual(recorded[0]!.args![0], {
+      pair: "ALOT/USDC",
+      side: "BUY",
+      amount: 100,
+      price: 0.05,
+      timeInForce: "PO",
+      stp: "CANCEL_MAKER",
+    });
+  });
+  it("rejects an unknown timeInForce", async () => {
+    const { client, contract } = stub();
+    await assert.rejects(
+      tool.handler(
+        { pair: "ALOT/USDC", side: "BUY", amount: 100, price: 0.05, timeInForce: "GTX" },
+        { config: BASE_CONFIG, client, contract },
+      ),
+      /timeInForce must be one of/i,
+    );
+  });
 });
 
 describe("clob_place_order_list", () => {

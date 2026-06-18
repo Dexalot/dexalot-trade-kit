@@ -34,6 +34,10 @@ Interactive wizard that prompts for:
 - profile name (default `default`)
 - network: `mainnet`, `testnet`, or `devnet`
 - wallet private key (masked input; optional — leave blank for read-only public data)
+- whether to **encrypt** the key (recommended): if yes, the wizard stores an `encrypted_key`
+  (scrypt+AES keystore) instead of a plaintext `private_key`. The user must then provide the
+  passphrase at runtime via the `DEXALOT_KEYSTORE_PASSWORD` env var (ideally sourced from an OS
+  keychain) so the CLI / MCP server can decrypt it.
 
 If devnet is chosen the wizard also accepts a custom `api_base_url`.
 

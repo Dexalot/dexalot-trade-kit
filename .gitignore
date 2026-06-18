@@ -34,3 +34,8 @@ aTempFiles/
 _tmp_*
 *.tgz
 .worktrees/
+
+# local agent/editor tooling
+.codex/
+.gemini/
+.mcp.json
