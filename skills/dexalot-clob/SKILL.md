@@ -19,7 +19,7 @@ metadata:
 
 # Dexalot CLOB CLI
 
-Place, cancel, replace, and query orders on the Dexalot CLOB (Central Limit Order Book). All writes are on-chain transactions against the TradePairs contract on the Dexalot subnet; all reads route through `@dexalot/dexalot-sdk` (signed under the hood where required).
+Place, cancel, replace, and query orders on the Dexalot CLOB (Central Limit Order Book). All writes are on-chain transactions against the TradePairs contract on the Dexalot L1; all reads route through `@dexalot/dexalot-sdk` (signed under the hood where required).
 
 **Wallet required for every command in this skill.**
 
@@ -130,6 +130,6 @@ All three orders submit in one transaction. All must be on the same pair.
 
 ## Safety
 
-The Dexalot subnet has fast finality but on-chain operations are still irreversible. The MCP server includes a built-in safeguard: if any tool error message suggests write actions (`cancel`, `close`, `stop`, etc.), the agent is instructed not to auto-execute the suggested remediation — surface to the user instead.
+The Dexalot L1 has fast finality but on-chain operations are still irreversible. The MCP server includes a built-in safeguard: if any tool error message suggests write actions (`cancel`, `close`, `stop`, etc.), the agent is instructed not to auto-execute the suggested remediation — surface to the user instead.
 
 When `--read-only` is set, every `clob.write` tool is removed from the registered set; the agent cannot place or cancel anything even by accident.

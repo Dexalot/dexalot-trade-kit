@@ -24,7 +24,7 @@ export function registerAnalyticsTools(): ToolSpec[] {
       name: "analytics_get_daily_volumes",
       module: "analytics",
       description:
-        "Daily trading volume across the Dexalot subnet. Returns one record per day with total volume, base-asset volume, USD-denominated volume, and trade count. Useful for monitoring activity trends.",
+        "Daily trading volume across the Dexalot L1. Returns one record per day with total volume, base-asset volume, USD-denominated volume, and trade count. Useful for monitoring activity trends.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -44,7 +44,7 @@ export function registerAnalyticsTools(): ToolSpec[] {
       name: "analytics_get_top_tokens",
       module: "analytics",
       description:
-        "Rank Dexalot subnet tokens by recent volume / market cap. Returns the top traded tokens with USD volume, price changes, and trade counts. Use to discover what's active without scanning every pair.",
+        "Rank Dexalot L1 tokens by recent volume / market cap. Returns the top traded tokens with USD volume, price changes, and trade counts. Use to discover what's active without scanning every pair.",
       isWrite: false,
       inputSchema: {
         type: "object",

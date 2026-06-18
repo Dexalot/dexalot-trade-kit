@@ -10,7 +10,7 @@ import type { ToolSpec } from "./types.js";
 
 /**
  * Transfer module: cross-chain deposits and withdrawals between connected
- * chains and the Dexalot subnet, gas top-up/removal, P2P portfolio transfers,
+ * chains and the Dexalot L1, gas top-up/removal, P2P portfolio transfers,
  * and bridge fee estimates.
  *
  * Routing:
@@ -23,7 +23,7 @@ import type { ToolSpec } from "./types.js";
 
 const TOKEN_PROP = {
   type: "string" as const,
-  description: 'Token symbol (canonical Dexalot subnet symbol, e.g. "ALOT", "USDC", "AVAX").',
+  description: 'Token symbol (canonical Dexalot L1 symbol, e.g. "ALOT", "USDC", "AVAX").',
 };
 
 const CHAIN_PROP = {
@@ -50,7 +50,7 @@ export function registerTransferTools(): ToolSpec[] {
       name: "transfer_deposit",
       module: "transfer",
       description:
-        "Bridge tokens from a connected source chain (Avalanche/Ethereum/Arbitrum) to the Dexalot subnet. Submits a deposit on the source chain that the Portfolio contract receives and credits to the wallet's subnet balance. Use get_deposit_bridge_fee first to estimate cost.",
+        "Bridge tokens from a connected source chain (Avalanche/Ethereum/Arbitrum) to the Dexalot L1. Submits a deposit on the source chain that the Portfolio contract receives and credits to the wallet's Dexalot L1 balance. Use get_deposit_bridge_fee first to estimate cost.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -84,7 +84,7 @@ export function registerTransferTools(): ToolSpec[] {
       name: "transfer_withdraw",
       module: "transfer",
       description:
-        "Bridge tokens from the Dexalot subnet to a connected destination chain. Submits a withdraw against the subnet Portfolio contract; the destination chain credits the wallet asynchronously.",
+        "Bridge tokens from the Dexalot L1 to a connected destination chain. Submits a withdraw against the Dexalot L1 Portfolio contract; the destination chain credits the wallet asynchronously.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -118,7 +118,7 @@ export function registerTransferTools(): ToolSpec[] {
       name: "transfer_add_gas",
       module: "transfer",
       description:
-        "Withdraw native ALOT from the subnet Portfolio to the wallet (raise gas balance for paying subnet transaction fees). Useful when the wallet's gas runs low.",
+        "Withdraw native ALOT from the Dexalot L1 Portfolio to the wallet (raise gas balance for paying Dexalot L1 transaction fees). Useful when the wallet's gas runs low.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -146,7 +146,7 @@ export function registerTransferTools(): ToolSpec[] {
       name: "transfer_remove_gas",
       module: "transfer",
       description:
-        "Deposit native ALOT from the wallet back into the subnet Portfolio (lower gas balance, restore tradable balance). Reverse of add_gas.",
+        "Deposit native ALOT from the wallet back into the Dexalot L1 Portfolio (lower gas balance, restore tradable balance). Reverse of add_gas.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -174,7 +174,7 @@ export function registerTransferTools(): ToolSpec[] {
       name: "transfer_portfolio",
       module: "transfer",
       description:
-        "P2P transfer of subnet portfolio balance to another wallet. Stays inside Dexalot — no bridge involved. The recipient receives the token on their subnet balance immediately.",
+        "P2P transfer of Dexalot L1 portfolio balance to another wallet. Stays inside Dexalot — no bridge involved. The recipient receives the token on their Dexalot L1 balance immediately.",
       isWrite: true,
       inputSchema: {
         type: "object",

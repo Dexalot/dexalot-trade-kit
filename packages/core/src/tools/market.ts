@@ -100,7 +100,7 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_tokens",
       module: "market",
       description:
-        "List every token recognised by Dexalot's backend across all connected chains: subnet symbol, address per chain id, EVM decimals, auction state, virtual/native flags, and logos.",
+        "List every token recognised by Dexalot's backend across all connected chains: Dexalot L1 symbol, address per chain id, EVM decimals, auction state, virtual/native flags, and logos.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -118,7 +118,7 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_environments",
       module: "market",
       description:
-        "List every chain Dexalot is connected to in the active network (mainnet/testnet/devnet) — chain id, native asset symbol, environment kind, and Dexalot subnet linkage.",
+        "List every chain Dexalot is connected to in the active network (mainnet/testnet/devnet) — chain id, native asset symbol, environment kind, and Dexalot L1 linkage.",
       isWrite: false,
       inputSchema: {
         type: "object",

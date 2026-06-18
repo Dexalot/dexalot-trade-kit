@@ -1,6 +1,6 @@
 ---
 name: dexalot-transfer
-description: "Use this skill when the user asks to: deposit tokens from a connected chain (Avalanche/Ethereum/Arbitrum) into the Dexalot subnet, withdraw tokens from the subnet back to a source chain, top up or remove native ALOT gas balance for paying subnet transaction fees, transfer subnet portfolio balance to another wallet (P2P), estimate the bridge fee for a deposit, look up a token's per-chain contract address and decimals, or list paginated cross-chain transfer history (deposits/withdrawals/gas/P2P). All writes require a wallet (DEXALOT_PRIVATE_KEY or profile private_key). Do NOT use for placing/cancelling orders (dexalot-clob), RFQ swap settlement (dexalot-swap), balance queries (dexalot-portfolio), or USD pricing (dexalot-portfolio's USD-price tools)."
+description: "Use this skill when the user asks to: deposit tokens from a connected chain (Avalanche/Ethereum/Arbitrum) into the Dexalot L1, withdraw tokens from the Dexalot L1 back to a source chain, top up or remove native ALOT gas balance for paying Dexalot L1 transaction fees, transfer Dexalot L1 portfolio balance to another wallet (P2P), estimate the bridge fee for a deposit, look up a token's per-chain contract address and decimals, or list paginated cross-chain transfer history (deposits/withdrawals/gas/P2P). All writes require a wallet (DEXALOT_PRIVATE_KEY or profile private_key). Do NOT use for placing/cancelling orders (dexalot-clob), RFQ swap settlement (dexalot-swap), balance queries (dexalot-portfolio), or USD pricing (dexalot-portfolio's USD-price tools)."
 license: MIT
 metadata:
   author: dexalot-trade-kit
@@ -19,7 +19,7 @@ metadata:
 
 # Dexalot Transfer CLI
 
-Cross-chain deposits and withdrawals between the Dexalot subnet and connected source chains, plus gas management and P2P portfolio transfers.
+Cross-chain deposits and withdrawals between the Dexalot L1 and connected source chains, plus gas management and P2P portfolio transfers.
 
 **Skill routing:**
 - Bridging + gas + P2P → `dexalot-transfer` (this skill)
@@ -38,7 +38,7 @@ Cross-chain deposits and withdrawals between the Dexalot subnet and connected so
 | Arbitrum | `Arbitrum` | `Arbitrum Sepolia` |
 | Base | `Base` | `Base Sepolia` |
 | BSC | `BSC` | `BSC Testnet` |
-| Dexalot subnet | `Dexalot L1` | `Dexalot L1` |
+| Dexalot L1 | `Dexalot L1` | `Dexalot L1` |
 
 If you pass an unknown chain name the error lists the connected set.
 
@@ -50,18 +50,18 @@ Follow [`../_shared/preflight.md`](../_shared/preflight.md). All writes need a w
 
 | Command | Auth | Description |
 |---|:-:|---|
-| `dexalot transfer deposit --token T --amount A --sourceChain C [--useLayerZero] [--waitForReceipt]` | ✓ | Bridge token from source chain to subnet |
-| `dexalot transfer withdraw --token T --amount A --destinationChain C [--useLayerZero]` | ✓ | Bridge token from subnet to destination chain |
+| `dexalot transfer deposit --token T --amount A --sourceChain C [--useLayerZero] [--waitForReceipt]` | ✓ | Bridge token from source chain to Dexalot L1 |
+| `dexalot transfer withdraw --token T --amount A --destinationChain C [--useLayerZero]` | ✓ | Bridge token from Dexalot L1 to destination chain |
 | `dexalot transfer add-gas --amount N` | ✓ | Withdraw native ALOT from portfolio to wallet (gas) |
 | `dexalot transfer remove-gas --amount N` | ✓ | Deposit native ALOT from wallet to portfolio |
-| `dexalot transfer portfolio --token T --amount A --toAddress 0x...` | ✓ | P2P transfer on subnet |
+| `dexalot transfer portfolio --token T --amount A --toAddress 0x...` | ✓ | P2P transfer on Dexalot L1 |
 | `dexalot transfer get-deposit-bridge-fee --token T --amount A --sourceChain C` | ✓ | Estimate bridge cost in native asset |
 | `dexalot transfer get-token-details --token T` | — | Per-chain contract addresses + decimals |
 | `dexalot transfer get-combined-transfers [--symbol T] [--fromTs UNIX_SECONDS] [--toTs UNIX_SECONDS] [--limit N] [--offset N]` | ✓ | History (canonical Transfer rows; `--fromTs`/`--toTs` are unix timestamps in seconds; legacy `--type`/`--status` flags are accepted but ignored — the backend never honored them) |
 
 ## Typical workflows
 
-### Bridge USDC from Avalanche to the subnet
+### Bridge USDC from Avalanche to the Dexalot L1
 
 ```bash
 # 1. Confirm balance on source chain
@@ -73,7 +73,7 @@ dexalot transfer get-deposit-bridge-fee --token USDC --amount 100 --sourceChain 
 # 3. Submit the deposit
 dexalot transfer deposit --token USDC --amount 100 --sourceChain Avalanche --profile live
 
-# 4. Confirm the subnet balance arrived
+# 4. Confirm the Dexalot L1 balance arrived
 dexalot portfolio get-balance --token USDC --profile live
 ```
 
@@ -87,7 +87,7 @@ Withdrawal finality on the destination chain is asynchronous; track via `dexalot
 
 ### Top up gas balance
 
-If subnet transactions are failing with "out of gas", the wallet's native ALOT is low. Transfer some from portfolio:
+If Dexalot L1 transactions are failing with "out of gas", the wallet's native ALOT is low. Transfer some from portfolio:
 
 ```bash
 dexalot transfer add-gas --amount 1 --profile live

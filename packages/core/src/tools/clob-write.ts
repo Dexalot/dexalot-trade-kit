@@ -11,7 +11,7 @@ import type { ToolSpec } from "./types.js";
 
 /**
  * Write-side CLOB tools. All operations submit transactions to the TradePairs
- * contract on the Dexalot subnet via the SDK. Every tool is `isWrite: true`
+ * contract on the Dexalot L1 via the SDK. Every tool is `isWrite: true`
  * and will be dropped from the registered set when --read-only is active.
  *
  * Wait semantics: every write tool accepts an optional `waitForReceipt`
@@ -110,7 +110,7 @@ export function registerClobWriteTools(): ToolSpec[] {
       name: "clob_place_order",
       module: "clob.write",
       description:
-        "Place a single CLOB order (LIMIT or MARKET, BUY or SELL). Optional timeInForce (GTC/FOK/IOC/PO) and stp (self-trade prevention) modifiers. Submits a transaction to the TradePairs contract on the Dexalot subnet. Returns txHash + the auto-generated clientOrderId on success.",
+        "Place a single CLOB order (LIMIT or MARKET, BUY or SELL). Optional timeInForce (GTC/FOK/IOC/PO) and stp (self-trade prevention) modifiers. Submits a transaction to the TradePairs contract on the Dexalot L1. Returns txHash + the auto-generated clientOrderId on success.",
       isWrite: true,
       inputSchema: {
         type: "object",

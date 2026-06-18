@@ -1,6 +1,6 @@
 ---
 name: dexalot-analytics
-description: "Use this skill when the user asks for: daily trading volumes on the Dexalot subnet, top traded tokens by volume or market cap, top trading pairs by volume, aggregate exchange statistics (all-time volume / trades / unique traders / fees), rolling 24-hour stats, ALOT burned-fee history for tokenomics dashboards, or annualized return (APY) for a list of trader addresses over a period. All commands except APY are public REST and require NO wallet. APY (POST) is also public but takes a list of trader addresses to query. Do NOT use for individual orders or fills (dexalot-clob), one-trader leaderboard rewards (dexalot-leaderboard), per-trader PnL (dexalot-pnl), portfolio balances (dexalot-portfolio), or announcements (dexalot-info)."
+description: "Use this skill when the user asks for: daily trading volumes on the Dexalot L1, top traded tokens by volume or market cap, top trading pairs by volume, aggregate exchange statistics (all-time volume / trades / unique traders / fees), rolling 24-hour stats, ALOT burned-fee history for tokenomics dashboards, or annualized return (APY) for a list of trader addresses over a period. All commands except APY are public REST and require NO wallet. APY (POST) is also public but takes a list of trader addresses to query. Do NOT use for individual orders or fills (dexalot-clob), one-trader leaderboard rewards (dexalot-leaderboard), per-trader PnL (dexalot-pnl), portfolio balances (dexalot-portfolio), or announcements (dexalot-info)."
 license: MIT
 metadata:
   author: dexalot-trade-kit
