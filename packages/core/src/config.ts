@@ -48,6 +48,15 @@ export interface DexalotConfig {
    * an encrypted profile never blocks public market/analytics/info reads.
    */
   walletError?: ConfigError;
+  /**
+   * True when this profile signs via WalletConnect (key in the user's wallet,
+   * not on disk). The signer is injected at runtime after pairing, so at
+   * config-load time `hasAuth` is false; the CLI/MCP flip it to true once a
+   * session is restored or established.
+   */
+  walletConnect?: boolean;
+  /** Reown projectId for WalletConnect mode (resolved from profile/env/default). */
+  wcProjectId?: string;
   /** Resolved profile name (used by setup and log lines). */
   profile: string;
   /** REST API base URL — includes the `/api` suffix. */
@@ -119,7 +128,14 @@ function validatePrivateKeyHex(raw: string): string {
   return hex;
 }
 
-function loadWallet(toml: DexalotProfile): { privateKey?: string; hasAuth: boolean; walletError?: ConfigError } {
+function loadWallet(toml: DexalotProfile): { privateKey?: string; hasAuth: boolean; walletError?: ConfigError; walletConnect?: boolean } {
+  // 0. WalletConnect: no key on disk. The signer is paired + injected at
+  //    runtime, so hasAuth stays false here (flipped on by the CLI/MCP once a
+  //    session is live). Public reads work without pairing.
+  if (toml.key_source === "walletconnect") {
+    return { hasAuth: false, walletConnect: true };
+  }
+
   // 1. Plaintext key from env or profile (back-compat, CI, power users).
   const raw = process.env.DEXALOT_PRIVATE_KEY?.trim() ?? toml.private_key?.trim();
   if (raw) return { privateKey: validatePrivateKeyHex(raw), hasAuth: true };
@@ -305,6 +321,7 @@ export async function loadConfig(cli: CliOptions): Promise<DexalotConfig> {
 
   return {
     ...wallet,
+    wcProjectId: toml.wc_project_id?.trim() || process.env.DEXALOT_WC_PROJECT_ID?.trim(),
     profile: profileName,
     baseUrl,
     wsUrl,

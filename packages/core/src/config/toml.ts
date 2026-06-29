@@ -20,16 +20,21 @@ export interface DexalotProfile {
    */
   encrypted_key?: string;
   /**
-   * Key storage backend. `"vault"` means the private key lives in the Dexalot
-   * secrets vault (SDK `secrets-vault`, Fernet-encrypted) and is read at runtime
-   * with the Fernet key from the DEXALOT_VAULT_KEY env var. Absent → the key (if
-   * any) comes from private_key / encrypted_key / DEXALOT_PRIVATE_KEY.
+   * Key storage backend.
+   * - `"vault"` — the private key lives in the Dexalot secrets vault (SDK
+   *   `secrets-vault`, Fernet-encrypted), read at runtime with DEXALOT_VAULT_KEY.
+   * - `"walletconnect"` — no key on disk at all; the kit pairs with the user's
+   *   wallet over WalletConnect and every signature is approved there. Run
+   *   `dexalot wallet connect` (or the `wallet_connect` MCP tool) to pair.
+   * - Absent → the key (if any) comes from private_key / encrypted_key / DEXALOT_PRIVATE_KEY.
    */
-  key_source?: "vault";
+  key_source?: "vault" | "walletconnect";
   /** Secret name to read from the vault (default "PRIVATE_KEY"). Used when key_source = "vault". */
   vault_secret_name?: string;
   /** Override the vault file path (default ~/.dexalot/secrets_vault.json). */
   vault_path?: string;
+  /** Reown/WalletConnect projectId. Used when key_source = "walletconnect"; falls back to DEXALOT_WC_PROJECT_ID then a public test id. */
+  wc_project_id?: string;
   /** Network to target. Resolved into api_base_url and SDK parentEnv. */
   network?: string;
   /** Explicit override of the REST API base URL (e.g. for devnet). Takes precedence over network. */

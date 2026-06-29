@@ -12,7 +12,7 @@ export default defineConfig({
   clean: true,
   dts: false,
   noExternal: ["@dexalot/trade-core"],
-  external: ["undici", "yauzl", "ethers", "@dexalot/dexalot-sdk"],
+  external: ["undici", "yauzl", "ethers", "@dexalot/dexalot-sdk", "@walletconnect/sign-client", "qrcode"],
   banner: { js: "#!/usr/bin/env node" },
   define: { __GIT_HASH__: JSON.stringify(gitHash) },
 });

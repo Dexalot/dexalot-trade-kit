@@ -12,10 +12,12 @@ import {
   runSetup,
   SUPPORTED_CLIENTS,
   CLIENT_NAMES,
+  loadConfig,
 } from "@dexalot/trade-core";
 import type { DexalotProfile, DexalotTomlConfig, NetworkId, ClientId } from "@dexalot/trade-core";
 import { generateSecretsVaultKey, secretsVaultSet } from "@dexalot/dexalot-sdk/secrets-vault";
 import { outputLine, errorLine } from "../formatter.js";
+import { dispatchWalletCommand } from "./wallet.js";
 
 function maskKey(key: string): string {
   if (!key) return "(unset)";
@@ -88,7 +90,7 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
   const p = createPrompter();
   const rl = p.rl;
   let regCtx:
-    | { profileName: string; isDefaultProfile: boolean; hasKey: boolean; runtimeEnv?: Record<string, string> }
+    | { profileName: string; isDefaultProfile: boolean; hasKey: boolean; runtimeEnv?: Record<string, string>; walletConnect?: boolean }
     | null = null;
   try {
     outputLine(`Dexalot CLI — interactive profile setup`);
@@ -115,54 +117,71 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
     outputLine(`  → API: ${networkInfo.apiBaseUrl}`);
     outputLine(`  → SDK parentEnv: ${networkInfo.parentEnv}\n`);
 
-    let privateKey = "";
-    while (!privateKey) {
-      const raw = await promptSecret(p, "Wallet private key (0x... or leave blank to skip)");
-      if (!raw) {
-        outputLine("  Skipping wallet — only public market data will work.\n");
-        break;
-      }
-      try {
-        privateKey = validatePrivateKey(raw);
-        const wallet = new Wallet(privateKey);
-        outputLine(`  → Address: ${wallet.address}\n`);
-      } catch (err) {
-        errorLine(`  ${(err as Error).message} Try again.`);
-        privateKey = "";
-      }
-    }
-
     const profile: DexalotProfile = {
       network,
     };
     let runtimeEnv: Record<string, string> | undefined;
-    if (privateKey) {
-      const enc = await prompt(
-        rl,
-        "Encrypt the key at rest in the Dexalot secrets vault? (Y/n)",
-        "Y",
-      );
-      if (enc.toLowerCase() !== "n") {
-        const vaultKey = generateSecretsVaultKey();
-        const secretName = `PRIVATE_KEY_${profileName}`;
-        const set = secretsVaultSet(secretsVaultPath(), secretName, privateKey, vaultKey);
-        if (!set.success) {
-          errorLine("  Vault write failed; storing as plaintext private_key instead.");
-          profile.private_key = privateKey;
-        } else {
-          profile.key_source = "vault";
-          profile.vault_secret_name = secretName;
-          runtimeEnv = { DEXALOT_VAULT_KEY: vaultKey };
-          outputLine(`  → Encrypted into the secrets vault (${secretsVaultPath()}) as "${secretName}".`);
-          outputLine("\n  ⚠ Vault key — it decrypts your key, is NOT stored in the vault, and cannot");
-          outputLine("    be recovered. Save it now (password manager / OS keychain):");
-          outputLine(`      DEXALOT_VAULT_KEY=${vaultKey}`);
-          outputLine("    It's written into any MCP client you register below.\n");
+    let privateKey = "";
+
+    outputLine("How do you want to sign & authenticate?");
+    outputLine("  [1] Private key   — stored encrypted in the Dexalot secrets vault");
+    outputLine("  [2] WalletConnect — no key on disk; approve each signature in your wallet app");
+    outputLine("  [3] None          — read-only (public market data only)");
+    const method = (await prompt(rl, "Choose (1/2/3)", "1")).trim();
+    const useWalletConnect = method === "2";
+    const readOnlyProfile = method === "3";
+
+    if (useWalletConnect) {
+      profile.key_source = "walletconnect";
+      outputLine("  → WalletConnect mode: no private key stored. Uses the kit's built-in Reown project");
+      outputLine("    (override only if needed: wc_project_id in the profile, or DEXALOT_WC_PROJECT_ID).");
+      outputLine("    After setup, run `dexalot wallet connect` (or the wallet_connect MCP tool) to pair.\n");
+    } else if (!readOnlyProfile) {
+      while (!privateKey) {
+        const raw = await promptSecret(p, "Wallet private key (0x... or leave blank to skip)");
+        if (!raw) {
+          outputLine("  Skipping wallet — only public market data will work.\n");
+          break;
         }
-      } else {
-        profile.private_key = privateKey;
-        outputLine("  → Stored as plaintext private_key.\n");
+        try {
+          privateKey = validatePrivateKey(raw);
+          const wallet = new Wallet(privateKey);
+          outputLine(`  → Address: ${wallet.address}\n`);
+        } catch (err) {
+          errorLine(`  ${(err as Error).message} Try again.`);
+          privateKey = "";
+        }
       }
+      if (privateKey) {
+        const enc = await prompt(
+          rl,
+          "Encrypt the key at rest in the Dexalot secrets vault? (Y/n)",
+          "Y",
+        );
+        if (enc.toLowerCase() !== "n") {
+          const vaultKey = generateSecretsVaultKey();
+          const secretName = `PRIVATE_KEY_${profileName}`;
+          const set = secretsVaultSet(secretsVaultPath(), secretName, privateKey, vaultKey);
+          if (!set.success) {
+            errorLine("  Vault write failed; storing as plaintext private_key instead.");
+            profile.private_key = privateKey;
+          } else {
+            profile.key_source = "vault";
+            profile.vault_secret_name = secretName;
+            runtimeEnv = { DEXALOT_VAULT_KEY: vaultKey };
+            outputLine(`  → Encrypted into the secrets vault (${secretsVaultPath()}) as "${secretName}".`);
+            outputLine("\n  ⚠ Vault key — it decrypts your key, is NOT stored in the vault, and cannot");
+            outputLine("    be recovered. Save it now (password manager / OS keychain):");
+            outputLine(`      DEXALOT_VAULT_KEY=${vaultKey}`);
+            outputLine("    It's written into any MCP client you register below.\n");
+          }
+        } else {
+          profile.private_key = privateKey;
+          outputLine("  → Stored as plaintext private_key.\n");
+        }
+      }
+    } else {
+      outputLine("  → Read-only profile — only public market data will work.\n");
     }
 
     if (network === "devnet") {
@@ -182,15 +201,17 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
 
     outputLine(`✓ Saved profile "${profileName}" to ${configFilePath()}`);
     outputLine(`  Network:       ${network}`);
-    const keyStatus = !privateKey
-      ? "(none — read-only)"
-      : profile.key_source === "vault"
-        ? "encrypted (secrets vault)"
-        : maskKey(privateKey);
+    const keyStatus = useWalletConnect
+      ? "WalletConnect (pair with `dexalot wallet connect`)"
+      : !privateKey
+        ? "(none — read-only)"
+        : profile.key_source === "vault"
+          ? "encrypted (secrets vault)"
+          : maskKey(privateKey);
     outputLine(`  Private key:   ${keyStatus}`);
     const isDefaultProfile = config.default_profile === profileName;
     outputLine(`  Default:       ${isDefaultProfile ? "yes" : "no"}`);
-    regCtx = { profileName, isDefaultProfile, hasKey: Boolean(privateKey), runtimeEnv };
+    regCtx = { profileName, isDefaultProfile, hasKey: Boolean(privateKey), runtimeEnv, walletConnect: useWalletConnect };
   } finally {
     p.close();
   }
@@ -201,6 +222,20 @@ export async function cmdConfigInit(opts: InitOptions = {}): Promise<void> {
     await registerClients(regCtx);
     // The default profile is used implicitly, so don't make the user type --profile.
     const profileFlag = regCtx.isDefaultProfile ? "" : ` --profile ${regCtx.profileName}`;
+
+    // WalletConnect: pair right here so the user scans the QR in the wizard
+    // instead of running a second command. Force-exit after — the relay socket
+    // keeps Node alive.
+    if (regCtx.walletConnect) {
+      outputLine("\nNow pair your wallet — scan the QR below in your wallet app.");
+      outputLine("(Press Ctrl-C to skip; pair later with `dexalot wallet connect`.)");
+      const cfg = await loadConfig({ profile: regCtx.profileName, readOnly: false });
+      await dispatchWalletCommand("connect", cfg);
+      outputLine(`\nNext: dexalot${profileFlag} portfolio get-all-balances`);
+      process.stdout.write("", () => process.stderr.write("", () => process.exit(process.exitCode ?? 0)));
+      return;
+    }
+
     outputLine(`\nNext: dexalot${profileFlag} market get-pairs`);
   }
 }
@@ -274,6 +309,7 @@ async function registerClients(ctx: {
   profileName: string;
   isDefaultProfile: boolean;
   hasKey: boolean;
+  walletConnect?: boolean;
   runtimeEnv?: Record<string, string>;
 }): Promise<void> {
   const items = SUPPORTED_CLIENTS.map((c) => ({
@@ -292,14 +328,27 @@ async function registerClients(ctx: {
     return;
   }
 
-  // Safe default: read-only. Trading (place/cancel orders, deposits, swaps) is
-  // an explicit opt-in, and only meaningful when a wallet is configured.
+  // Trading (place/cancel orders, deposits, withdrawals, swaps) only makes sense
+  // when the profile can sign — a stored key OR a WalletConnect session.
+  //   - Key / vault: a key signs autonomously (no per-write prompt), so trading
+  //     is an explicit opt-in; default read-only.
+  //   - WalletConnect: every write is approved in the user's wallet, so there is
+  //     no autonomous-signing risk — default trading ENABLED, so write tools
+  //     aren't silently hidden (read-only would make e.g. withdraw invisible).
   let readOnly = true;
-  if (ctx.hasKey) {
+  const canSign = ctx.hasKey || ctx.walletConnect;
+  if (canSign) {
     const rl2 = createInterface({ input: stdin, output: stdout });
-    const ans = (await rl2.question("Enable trading (write tools: orders, deposits, swaps)? (y/N): ")).trim();
+    if (ctx.walletConnect) {
+      const ans = (await rl2.question(
+        "Enable trading (orders, deposits, withdrawals)? Each is approved in your wallet. (Y/n): ",
+      )).trim();
+      readOnly = ans.toLowerCase() === "n";
+    } else {
+      const ans = (await rl2.question("Enable trading (write tools: orders, deposits, swaps)? (y/N): ")).trim();
+      readOnly = ans.toLowerCase() !== "y";
+    }
     rl2.close();
-    readOnly = ans.toLowerCase() !== "y";
   }
 
   const env = ctx.runtimeEnv && Object.keys(ctx.runtimeEnv).length > 0 ? ctx.runtimeEnv : undefined;

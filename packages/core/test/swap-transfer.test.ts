@@ -23,6 +23,7 @@ function stub(): { recorded: Recorded[]; client: any; contract: any } {
     },
     contract: {
       requireWallet: () => {},
+      resolveChainName: async (input: string) => input,
       get: async () => ({
         getSwapPairs: async (...args: unknown[]) => {
           recorded.push({ method: "sdk.getSwapPairs", args });

@@ -28,7 +28,8 @@ const TOKEN_PROP = {
 
 const CHAIN_PROP = {
   type: "string" as const,
-  description: 'Connected chain name (e.g. "Avalanche", "Ethereum", "Arbitrum"). Use market_get_environments to list available chains.',
+  description:
+    'Connected chain — its exact name (which may contain spaces, e.g. "Avalanche", "Arbitrum Sepolia"), a common alias ("arbitrum", "avax"), or its numeric EVM chain id ("421614"). Resolved server-side; an unrecognized value returns the list of valid chains for the active network. market_get_environments also lists them.',
 };
 
 const WAIT_PROP = {
@@ -71,7 +72,7 @@ export function registerTransferTools(): ToolSpec[] {
         const token = requireString(args, "token");
         const amount = readNumber(args, "amount");
         if (amount === undefined) throw new ValidationError("amount is required.");
-        const sourceChain = requireString(args, "sourceChain");
+        const sourceChain = await contract.resolveChainName(requireString(args, "sourceChain"));
         const useLZ = readBoolean(args, "useLayerZero") ?? false;
         const wait = readBoolean(args, "waitForReceipt") ?? true;
         const result = await sdk.deposit(token, amount, sourceChain, useLZ, wait);
@@ -105,7 +106,7 @@ export function registerTransferTools(): ToolSpec[] {
         const token = requireString(args, "token");
         const amount = readNumber(args, "amount");
         if (amount === undefined) throw new ValidationError("amount is required.");
-        const destinationChain = requireString(args, "destinationChain");
+        const destinationChain = await contract.resolveChainName(requireString(args, "destinationChain"));
         const useLZ = readBoolean(args, "useLayerZero") ?? false;
         const wait = readBoolean(args, "waitForReceipt") ?? true;
         const result = await sdk.withdraw(token, amount, destinationChain, useLZ, wait);
@@ -228,7 +229,7 @@ export function registerTransferTools(): ToolSpec[] {
         const token = requireString(args, "token");
         const amount = readNumber(args, "amount");
         if (amount === undefined) throw new ValidationError("amount is required.");
-        const sourceChain = requireString(args, "sourceChain");
+        const sourceChain = await contract.resolveChainName(requireString(args, "sourceChain"));
         const result = await sdk.getDepositBridgeFee(token, amount, sourceChain);
         const data = contract.unwrap(result, "transfer.getDepositBridgeFee");
         return { endpoint: "SDK getDepositBridgeFee", requestTime: new Date().toISOString(), data };
