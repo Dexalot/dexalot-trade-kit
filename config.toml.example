@@ -11,6 +11,12 @@
 # so the CLI / MCP server can decrypt it. The vault file alone is useless without it.
 # (Legacy `encrypted_key` ethers-keystore profiles are still read.)
 # No key at all is fine too — public/read-only tools still work.
+#
+# WalletConnect: set `key_source = "walletconnect"` for a profile with NO key on
+# disk — the kit pairs with your wallet app and you approve each signature there.
+# Pair with `dexalot wallet connect`. Optional `wc_project_id` (or DEXALOT_WC_PROJECT_ID).
+# Scope today: signed reads + the auth header (on-chain writes are a follow-up).
+# See the [profiles.wc] example at the bottom.
 
 # Which profile to use when --profile is not specified.
 default_profile = "live"
@@ -33,6 +39,12 @@ network     = "devnet"
 # but you can override here if Dexalot points you at custom endpoints:
 # api_base_url = "https://api.dexalot-dev.com/api"
 # parent_env   = "fuji-multi-avax"
+
+# ── WalletConnect profile (no key on disk) ──────────────────────────────────
+[profiles.wc]
+network       = "mainnet"
+key_source    = "walletconnect"
+# wc_project_id = "your-reown-projectId"   # from cloud.reown.com; or DEXALOT_WC_PROJECT_ID
 
 # ── Optional advanced fields (any profile) ──────────────────────────────────
 # timeout_ms = 15000                 # HTTP timeout

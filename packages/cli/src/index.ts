@@ -6,7 +6,10 @@
 import { createRequire } from "node:module";
 import {
   DexalotRestClient,
+  DexalotContractClient,
   createToolRunner,
+  createWalletConnectManager,
+  attachWalletConnectSession,
   loadConfig,
   toToolErrorPayload,
   checkForUpdates,
@@ -30,8 +33,16 @@ import { dispatchRewardsCommand } from "./commands/rewards.js";
 import { dispatchPnlCommand } from "./commands/pnl.js";
 import { handleConfigCommand } from "./commands/config.js";
 import { handleSetupCommand } from "./commands/setup.js";
+import { dispatchWalletCommand } from "./commands/wallet.js";
 import { cmdListTools } from "./commands/discovery.js";
 import { unknownSubcommand } from "./unknown-command.js";
+
+/**
+ * Set when a WalletConnect relay socket is opened this run. The SignClient
+ * keeps that websocket alive, so Node won't exit on its own — main() force-exits
+ * after the command completes when this is true.
+ */
+let wcRelayOpen = false;
 
 declare const __GIT_HASH__: string;
 const _require = createRequire(import.meta.url);
@@ -83,8 +94,30 @@ async function dispatch(v: CliValues): Promise<void> {
   setEnvContext(config);
   setJsonEnvEnabled(v.env);
 
+  // `wallet connect|status|disconnect` — manage the WalletConnect session.
+  if (module === "wallet") {
+    wcRelayOpen = true;
+    const handled = await dispatchWalletCommand(action ?? "status", config);
+    if (!handled) unknownSubcommand([module, action ?? ""]);
+    return;
+  }
+
   const client = new DexalotRestClient(config);
-  const runner = createToolRunner(client, config);
+  const contract = new DexalotContractClient(config);
+
+  // WalletConnect profile: restore any persisted session and inject the
+  // wallet-held signer into both clients before running the command. Missing
+  // session → stays in public-read mode; signed commands surface guidance.
+  if (config.walletConnect) {
+    wcRelayOpen = true;
+    const manager = createWalletConnectManager(config);
+    const address = await attachWalletConnectSession(config, manager, client, contract);
+    if (!address && v.verbose) {
+      errorLine("No WalletConnect session — run `dexalot wallet connect` to enable signed operations.");
+    }
+  }
+
+  const runner = createToolRunner(client, config, contract);
 
   // Per-module dispatch (more modules land in later stages)
   if (!action) {
@@ -186,6 +219,15 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     }
     errorLine(`Version: dexalot-trade-cli@${CLI_VERSION}`);
     process.exitCode = 1;
+  }
+
+  // A WalletConnect relay websocket keeps the event loop alive; exit explicitly
+  // once the command is done (the session is already persisted to disk). Drain
+  // BOTH streams first — error output goes to stderr, so a stdout-only flush
+  // could truncate diagnostics when stderr is piped/redirected.
+  if (wcRelayOpen) {
+    const code = process.exitCode ?? 0;
+    process.stdout.write("", () => process.stderr.write("", () => process.exit(code)));
   }
 }
 

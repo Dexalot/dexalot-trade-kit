@@ -1,5 +1,17 @@
 export { DexalotRestClient } from "./client/rest-client.js";
+export type { MessageSigner } from "./client/rest-client.js";
 export { DexalotContractClient } from "./client/contract-client.js";
+export { WalletConnectManager, walletConnectStorePath, qrToTerminal, qrToPngBase64 } from "./client/walletconnect.js";
+export type { WalletConnectManagerOptions } from "./client/walletconnect.js";
+export { WalletConnectSigner } from "./client/walletconnect-signer.js";
+export {
+  createWalletConnectManager,
+  attachWalletConnectSession,
+  ensureWalletNetworks,
+  WC_OPTIONAL_CHAINS,
+  WC_WALLET_NETWORKS,
+} from "./client/walletconnect-runtime.js";
+export type { WcWalletNetwork } from "./client/walletconnect-runtime.js";
 export { MERKL_BASE_URL, buildMerklRewardsPath } from "./client/merkl-api.js";
 export type { MerklRewardsParams } from "./client/merkl-api.js";
 

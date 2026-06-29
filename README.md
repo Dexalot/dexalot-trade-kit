@@ -84,6 +84,20 @@ The key stays on your machine (encrypted in the vault) and is only used to sign 
 
 > Prefer to wire it up yourself? Skip the checkbox and run `dexalot setup --client <name> --profile <name>` later; set `DEXALOT_VAULT_KEY` (the printed vault key) in the client's env so the server can decrypt at launch.
 
+### Or: no key on disk — WalletConnect (experimental)
+
+At the `config init` **"How do you want to sign?"** prompt, pick **`[2] WalletConnect`** to create a `key_source = "walletconnect"` profile. **Nothing is stored on your machine** — the kit pairs with your wallet app over WalletConnect (using a built-in Reown project; no setup needed) and your wallet approves each signature. Because every write is approved in your wallet, `config init` **enables the write tools by default** for WalletConnect profiles (a stored-key profile defaults to read-only, since a key can sign without prompting). Then:
+
+```bash
+dexalot wallet connect      # shows a QR + wc: URI — scan it in your wallet
+dexalot wallet status       # Connected: 0x…
+dexalot portfolio get-all-balances   # signed read, approved in your wallet
+```
+
+In an AI client the same flow runs through the `wallet_connect` / `wallet_connect_status` / `wallet_disconnect` tools (the connect tool returns a QR image to scan). The kit ships with **Dexalot's Reown project** so it works out of the box — override only if you want your own (`wc_project_id` in the profile or `DEXALOT_WC_PROJECT_ID`).
+
+**Scope:** signed reads + the auth header + **all on-chain writes** — withdraw, deposit, place/cancel order, portfolio transfer (each prompts in your wallet). Every write is routed to its own chain (Dexalot L1 for orders/withdraw/transfers, the source chain for deposits), so **your wallet must have each network you transact on added and approved** for the session, with a little gas there. Because every signature prompts in the wallet, this mode is **attended** — not for unattended autonomous trading. On-chain **writes** (orders/deposits/swaps) over WalletConnect are a follow-up — use a local-key / vault profile for writes. Every signature is approved in your wallet, so this mode is **attended** (not for unattended autonomous trading).
+
 > **Claude Code** can install the 12 skills + MCP server together in one step instead:
 >
 > ```text
@@ -146,6 +160,11 @@ network = "devnet"
 # parent_env = "fuji-multi-avax"
 # timeout_ms = 15000
 # rpc.43113 = ["https://rpc.example/avax-fuji"]
+
+[profiles.wc]
+network = "mainnet"
+key_source = "walletconnect"   # no key on disk — pair with `dexalot wallet connect`
+# wc_project_id = "<reown-projectId>"   # or set DEXALOT_WC_PROJECT_ID
 ```
 
 **Precedence** (highest → lowest):

@@ -19,6 +19,16 @@ import type {
   RequestResult,
 } from "./types.js";
 
+/**
+ * The minimal signing surface the REST client needs for the `x-signature` auth
+ * header. Satisfied by both an ethers `Wallet` (local key / vault) and the
+ * `WalletConnectSigner` (key held in the user's wallet app).
+ */
+export interface MessageSigner {
+  getAddress(): Promise<string>;
+  signMessage(message: string): Promise<string>;
+}
+
 const MERKL_BASE_URL = "https://api.merkl.xyz/v4";
 
 const MOUNTPOINT_SUFFIX: Record<Mountpoint, string> = {
@@ -75,7 +85,10 @@ export class DexalotRestClient {
   private readonly config: DexalotConfig;
   private readonly rateLimiter: RateLimiter;
   private readonly dispatcher?: ProxyAgent;
-  private wallet?: Wallet;
+  /** Active signer for the auth `x-signature` — a local `Wallet` or an injected WalletConnect signer. */
+  private messageSigner?: MessageSigner;
+  /** Address of the active signer, kept in sync for header use (`x-signature` prefix, `x-wallet-address`). */
+  private signerAddress?: string;
   /** Cached `<address>:<signature>` header, signed once and reused. */
   private signatureHeaderPromise?: Promise<string>;
 
@@ -86,9 +99,11 @@ export class DexalotRestClient {
       this.dispatcher = new ProxyAgent(config.proxyUrl);
     }
     if (config.privateKey) {
-      this.wallet = new Wallet(config.privateKey);
+      const wallet = new Wallet(config.privateKey);
+      this.messageSigner = wallet;
+      this.signerAddress = wallet.address;
       // Surface the address back to the config (set once at startup)
-      this.config.address = this.wallet.address;
+      this.config.address = wallet.address;
       // Eagerly sign the static auth message so the x-signature header is ready
       // before the first signed request (a local, gasless signMessage). Awaited
       // lazily by ensureSignatureHeader; the .catch keeps an early failure from
@@ -98,11 +113,36 @@ export class DexalotRestClient {
     }
   }
 
+  /**
+   * Inject an external message signer (WalletConnect) after construction — the
+   * key lives in the user's wallet, not on disk. Unlike the local-key path this
+   * does NOT eagerly sign: the first signed request triggers the wallet prompt
+   * lazily, so simply starting the kit never pops a signature request.
+   */
+  public setMessageSigner(signer: MessageSigner, address: string): void {
+    this.messageSigner = signer;
+    this.signerAddress = address;
+    this.config.address = address;
+    this.signatureHeaderPromise = undefined; // re-sign lazily with the new signer
+  }
+
+  /**
+   * Remove the active signer and drop the cached auth header — used on
+   * WalletConnect disconnect so a stale `<address>:<signature>` is never sent
+   * after the session is gone. Signed endpoints then surface the no-wallet
+   * guidance until a new signer is injected.
+   */
+  public clearMessageSigner(): void {
+    this.messageSigner = undefined;
+    this.signerAddress = undefined;
+    this.signatureHeaderPromise = undefined;
+  }
+
   private async computeSignatureHeader(): Promise<string> {
     // SDK timestampedAuth flag is currently disabled by default (backend hasn't shipped support).
     // When enabled, sign `${message}${ts}` and additionally send `x-timestamp: <ts>`.
-    const signature = await this.wallet!.signMessage(DEXALOT_SIGNATURE_MESSAGE);
-    return `${this.wallet!.address}:${signature}`;
+    const signature = await this.messageSigner!.signMessage(DEXALOT_SIGNATURE_MESSAGE);
+    return `${this.signerAddress}:${signature}`;
   }
 
   public get baseUrl(): string {
@@ -110,7 +150,7 @@ export class DexalotRestClient {
   }
 
   public get walletAddress(): string | undefined {
-    return this.wallet?.address;
+    return this.signerAddress;
   }
 
   // ---------------------------------------------------------------------------
@@ -194,7 +234,7 @@ export class DexalotRestClient {
    * Throws ConfigError if no wallet is configured.
    */
   private async ensureSignatureHeader(): Promise<string> {
-    if (!this.wallet) {
+    if (!this.messageSigner) {
       // A locked vault / encrypted profile surfaces its specific guidance here,
       // rather than failing every (public) command at config-load time.
       throw this.config.walletError ?? new ConfigError(
@@ -226,7 +266,7 @@ export class DexalotRestClient {
         if (stripped === "firmQuote") {
           headers.set("x-signature", await this.ensureSignatureHeader());
         } else if (stripped === "pairprice") {
-          if (this.wallet) headers.set("x-wallet-address", this.wallet.address);
+          if (this.signerAddress) headers.set("x-wallet-address", this.signerAddress);
         }
         return;
       case "trade":

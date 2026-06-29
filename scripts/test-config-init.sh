@@ -29,6 +29,7 @@ KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 steps = [
     ("Profile name", "qa\n"),
     ("Network (", "testnet\n"),
+    ("Choose (1/2/3)", "1\n"),         # signing method: private key (encrypt in vault)
     ("leave blank to skip", KEY + "\n"),
     ("Encrypt the key", "Y\n"),
     ("which clients?", "\r"),          # accept default (Claude Desktop checked)

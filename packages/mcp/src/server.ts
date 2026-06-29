@@ -13,6 +13,11 @@ import {
   DexalotApiError,
   toToolErrorPayload,
   toMcpTool,
+  createWalletConnectManager,
+  ensureWalletNetworks,
+  qrToPngBase64,
+  WC_WALLET_NETWORKS,
+  type WalletConnectManager,
 } from "@dexalot/trade-core";
 import type { DexalotConfig, ModuleId, ToolSpec } from "@dexalot/trade-core";
 import type { TradeLogger } from "@dexalot/trade-core";
@@ -34,6 +39,29 @@ const SYSTEM_CAPABILITIES_TOOL: Tool = {
     openWorldHint: false,
   },
 };
+
+const WALLET_CONNECT_TOOL: Tool = {
+  name: "wallet_connect",
+  description:
+    "Begin or report a WalletConnect pairing for a key_source=\"walletconnect\" profile (no private key on disk). " +
+    "Returns a wc: URI and a QR image to show the user; they approve in their wallet app. " +
+    "After showing it, poll wallet_connect_status until connected. Signatures are approved per-request in the wallet.",
+  inputSchema: { type: "object", additionalProperties: false },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+};
+const WALLET_STATUS_TOOL: Tool = {
+  name: "wallet_connect_status",
+  description: "Report whether a WalletConnect session is active and the connected wallet address.",
+  inputSchema: { type: "object", additionalProperties: false },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+};
+const WALLET_DISCONNECT_TOOL: Tool = {
+  name: "wallet_disconnect",
+  description: "End the active WalletConnect session.",
+  inputSchema: { type: "object", additionalProperties: false },
+  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+};
+const WALLET_TOOL_NAMES = new Set([WALLET_CONNECT_TOOL.name, WALLET_STATUS_TOOL.name, WALLET_DISCONNECT_TOOL.name]);
 
 type ModuleCapabilityStatus = "enabled" | "disabled" | "requires_auth";
 
@@ -180,11 +208,164 @@ function unknownToolResult(
   );
 }
 
+/**
+ * Run `fn` while emitting periodic MCP `notifications/progress` for the request,
+ * so the client resets its request timeout (60s default) for a slow tool — e.g.
+ * a write awaiting the user's WalletConnect approval, which can take minutes.
+ * No-op when the client didn't send a progressToken. Best-effort; never throws.
+ * Typed loosely to avoid coupling to the SDK's notification union.
+ */
+async function withProgressKeepalive<T>(request: unknown, extra: unknown, fn: () => Promise<T>): Promise<T> {
+  const token = (request as { params?: { _meta?: { progressToken?: string | number } } })?.params?._meta?.progressToken;
+  const send = (extra as { sendNotification?: (n: unknown) => Promise<void> })?.sendNotification;
+  if (token == null || typeof send !== "function") return fn();
+  let progress = 0;
+  const timer = setInterval(() => {
+    progress += 1;
+    void send({
+      method: "notifications/progress",
+      params: { progressToken: token, progress, message: "Waiting for your wallet to approve…" },
+    }).catch(() => {
+      /* keepalive is best-effort */
+    });
+  }, 10_000);
+  try {
+    return await fn();
+  } finally {
+    clearInterval(timer);
+  }
+}
+
 export function createServer(config: DexalotConfig, logger?: TradeLogger): Server {
   const client = new DexalotRestClient(config);
   const contract = new DexalotContractClient(config);
   const tools = buildTools(config);
   const toolMap = new Map<string, ToolSpec>(tools.map((tool) => [tool.name, tool]));
+
+  // --- WalletConnect (key_source = "walletconnect") --------------------------
+  // A single session manager per server process. Pairing is interactive, so
+  // wallet_connect returns the QR immediately and settles the approval in the
+  // background; the agent polls wallet_connect_status.
+  let wcReady: Promise<WalletConnectManager> | undefined;
+  let wcPairing = false;
+  let wcLastError: string | undefined;
+
+  function walletTextResult(text: string): CallToolResult {
+    return { content: [{ type: "text", text }] };
+  }
+
+  /** Instruction for the user to add custom Dexalot networks to their wallet (needed for write signing). */
+  function networkGuidance(): string {
+    const nets = WC_WALLET_NETWORKS[config.network] ?? [];
+    if (nets.length === 0) return "";
+    const lines = nets.map((n) => `${n.name} (chain id ${n.chainId}, RPC ${n.rpcUrl})`).join("; ");
+    return ` Tell the user: to sign on-chain writes (orders, withdraw, transfers run on the Dexalot L1), their wallet must have these networks added before approving: ${lines}. Deposits also need the source chain (Avalanche/Fuji) added.`;
+  }
+
+  /** Report which chains the session approved, and warn if a required Dexalot network is missing. */
+  function coverageNote(m: WalletConnectManager): string {
+    const chains = m.sessionChains;
+    const missing = (WC_WALLET_NETWORKS[config.network] ?? []).filter((n) => !chains.includes(`eip155:${n.chainId}`));
+    let s = ` Approved chains: ${chains.join(", ") || "auth only"}.`;
+    if (missing.length > 0) {
+      s += ` WARNING — wallet did not approve required network(s): ${missing
+        .map((n) => `${n.name} (eip155:${n.chainId})`)
+        .join(", ")}. On-chain writes there are rejected; the user must add the network in their wallet, then wallet_disconnect + wallet_connect.`;
+    }
+    return s;
+  }
+
+  async function injectSigner(m: WalletConnectManager): Promise<string | null> {
+    const signer = m.getSigner();
+    const address = m.address;
+    if (!signer || !address) return null;
+    client.setMessageSigner(signer, address);
+    await contract.setExternalSigner(signer);
+    config.hasAuth = true;
+    config.address = address;
+    config.walletConnect = true;
+    return address;
+  }
+
+  // Memoize init as a single promise so concurrent callers (the startup restore
+  // racing an incoming tool call) all await the SAME initialization — never a
+  // half-built manager, never a double SignClient.init against the store.
+  function ensureWcManager(): Promise<WalletConnectManager> {
+    wcReady ??= (async () => {
+      const m = createWalletConnectManager(config);
+      await m.init();
+      await injectSigner(m); // restore a persisted session if present
+      return m;
+    })();
+    return wcReady;
+  }
+
+  async function handleWalletTool(toolName: string): Promise<CallToolResult> {
+    const m = await ensureWcManager();
+    if (toolName === WALLET_STATUS_TOOL.name) {
+      if (m.connected && wcLastError) {
+        return walletTextResult(`Paired but attaching the signer failed: ${wcLastError}. Call wallet_connect again.`);
+      }
+      return walletTextResult(
+        m.connected
+          ? `Connected: ${m.address}.${coverageNote(m)}`
+          : wcPairing
+            ? "Pairing in progress — the user must approve in their wallet, then check again."
+            : "Not connected. Call wallet_connect to pair.",
+      );
+    }
+    if (toolName === WALLET_DISCONNECT_TOOL.name) {
+      if (!m.connected) return walletTextResult("No active WalletConnect session.");
+      const addr = m.address;
+      await m.disconnect();
+      // Reverse the injected signer so signed tools no longer see a wallet and
+      // no stale x-signature is sent after the session is gone.
+      client.clearMessageSigner();
+      contract.clearExternalSigner();
+      config.hasAuth = false;
+      config.address = undefined;
+      wcLastError = undefined;
+      return walletTextResult(`Disconnected ${addr}.`);
+    }
+    // wallet_connect
+    if (m.connected) {
+      return walletTextResult(`Already connected: ${m.address}. Call wallet_disconnect first to pair a different wallet.`);
+    }
+    // Request the live, complete chain set for this network so the wallet can
+    // approve every chain it has (Dexalot L1 + all connected chains).
+    const extraChains = await contract.getKnownCaipChains();
+    const { uri, approval } = await m.connect(extraChains);
+    wcPairing = true;
+    wcLastError = undefined;
+    void approval()
+      .then(() => injectSigner(m))
+      .then(() => ensureWalletNetworks(config, m)) // push any missing Dexalot networks into the wallet
+      .then(() => { wcLastError = undefined; })
+      .catch((err: unknown) => {
+        // Surface (don't swallow) a failed background injection: the session is
+        // live but unusable until re-paired. wallet_connect_status reports it.
+        wcLastError = (err as Error)?.message ?? String(err);
+        logger?.log("error", "wallet_connect", {}, err, 0);
+      })
+      .finally(() => {
+        wcPairing = false;
+      });
+    const png = await qrToPngBase64(uri);
+    return {
+      content: [
+        {
+          type: "text",
+          text:
+            "Show this QR for the user to scan in their wallet (WalletConnect). After they approve, poll " +
+            "wallet_connect_status until it reports Connected — it also reports the approved chains, so check " +
+            "the Dexalot L1 is among them before attempting a write. Signed reads, the auth header, and on-chain " +
+            "writes all work; the wallet approves each one." + networkGuidance(),
+        },
+        { type: "image", data: png, mimeType: "image/png" },
+        { type: "text", text: `WalletConnect URI:\n${uri}` },
+      ],
+    };
+  }
 
   const server = new Server(
     { name: SERVER_NAME, version: SERVER_VERSION },
@@ -209,13 +390,34 @@ export function createServer(config: DexalotConfig, logger?: TradeLogger): Serve
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const extra: Tool[] = [SYSTEM_CAPABILITIES_TOOL];
+    // Only expose the wallet tools for a WalletConnect profile, to avoid
+    // cluttering key/vault sessions where they have no use.
+    if (config.walletConnect) {
+      extra.push(WALLET_CONNECT_TOOL, WALLET_STATUS_TOOL, WALLET_DISCONNECT_TOOL);
+    }
     return {
-      tools: [...tools.map(toMcpTool), SYSTEM_CAPABILITIES_TOOL],
+      tools: [...tools.map(toMcpTool), ...extra],
     };
   });
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
     const toolName = request.params.name;
+
+    if (WALLET_TOOL_NAMES.has(toolName)) {
+      try {
+        return await handleWalletTool(toolName);
+      } catch (error) {
+        return errorResult(toolName, error, buildCapabilitySnapshot(config));
+      }
+    }
+
+    // NOTE: do NOT block tool calls on ensureWcManager() here. The session is
+    // restored in the background at startup; gating every call (incl. public
+    // reads) on WC init means a slow/stuck relay or a dead session hangs
+    // unrelated tools until the MCP timeout. Reads never need WC; signed/write
+    // tools use whatever signer the background restore injected (or fail fast
+    // with a clear "run wallet_connect" via requireWallet).
 
     if (toolName === SYSTEM_CAPABILITIES_TOOL_NAME) {
       const snapshot = buildCapabilitySnapshot(config);
@@ -240,11 +442,11 @@ export function createServer(config: DexalotConfig, logger?: TradeLogger): Serve
 
     const startTime = Date.now();
     try {
-      const response = await tool.handler(request.params.arguments ?? {}, {
-        config,
-        client,
-        contract,
-      });
+      // Keep the MCP call alive past its 60s default while a write waits on the
+      // user's wallet: a write (e.g. WalletConnect tx approval) can take minutes.
+      const response = await withProgressKeepalive(request, extra, () =>
+        tool.handler(request.params.arguments ?? {}, { config, client, contract }),
+      );
       logger?.log("info", toolName, request.params.arguments ?? {}, response, Date.now() - startTime);
       return successResult(toolName, response, buildCapabilitySnapshot(config));
     } catch (error) {
@@ -253,6 +455,14 @@ export function createServer(config: DexalotConfig, logger?: TradeLogger): Serve
       return errorResult(toolName, error, buildCapabilitySnapshot(config));
     }
   });
+
+  // WalletConnect profile: restore a persisted session at startup so signed
+  // tools work immediately when the user already paired (no key on disk).
+  if (config.walletConnect) {
+    void ensureWcManager().catch(() => {
+      /* surfaced when a wallet tool is actually called */
+    });
+  }
 
   return server;
 }

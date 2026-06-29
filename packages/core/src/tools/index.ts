@@ -62,9 +62,15 @@ export type ToolRunner = (toolName: string, args: ToolArgs) => Promise<ToolResul
  * All modules are enabled regardless of config.modules, since CLI
  * controls which commands to expose at the routing level.
  */
-export function createToolRunner(client: DexalotRestClient, config: DexalotConfig): ToolRunner {
+export function createToolRunner(
+  client: DexalotRestClient,
+  config: DexalotConfig,
+  contractClient?: DexalotContractClient,
+): ToolRunner {
   const fullConfig: DexalotConfig = { ...config, modules: [...MODULES] as ModuleId[], readOnly: false };
-  const contract = new DexalotContractClient(fullConfig);
+  // Reuse a caller-supplied contract client when given (e.g. one already wired
+  // with a WalletConnect signer); otherwise build a fresh one.
+  const contract = contractClient ?? new DexalotContractClient(fullConfig);
   const tools = allToolSpecs();
   const toolMap = new Map<string, ToolSpec>(tools.map((t) => [t.name, t]));
 

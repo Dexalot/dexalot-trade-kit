@@ -17,6 +17,27 @@ function sanitize(value: unknown): unknown {
   if (value === null || value === undefined) {
     return value;
   }
+  // Errors must be captured explicitly: message/name/stack are non-enumerable,
+  // so Object.entries() would drop them and log a useless `{}`-ish payload.
+  if (value instanceof Error) {
+    const e = value as Error & {
+      type?: string;
+      endpoint?: string;
+      suggestion?: string;
+      reasonCode?: string;
+      traceId?: string;
+    };
+    return sanitize({
+      name: e.name,
+      message: e.message,
+      type: e.type,
+      endpoint: e.endpoint,
+      suggestion: e.suggestion,
+      reasonCode: e.reasonCode,
+      traceId: e.traceId,
+      stack: e.stack,
+    });
+  }
   if (Array.isArray(value)) {
     return value.map(sanitize);
   }
