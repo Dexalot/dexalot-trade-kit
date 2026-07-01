@@ -153,7 +153,7 @@ function loadWallet(toml: DexalotProfile): { privateKey?: string; hasAuth: boole
         hasAuth: false,
         walletError: new ConfigError(
           "Profile has an encrypted_key but DEXALOT_KEYSTORE_PASSWORD is not set.",
-          "Set DEXALOT_KEYSTORE_PASSWORD to the passphrase you chose during `dexalot config init` " +
+          "Set DEXALOT_KEYSTORE_PASSWORD to the passphrase you chose during `dexalot init` " +
             "(e.g. source it from your OS keychain). Public reads work without it.",
         ),
       };
@@ -166,7 +166,7 @@ function loadWallet(toml: DexalotProfile): { privateKey?: string; hasAuth: boole
         hasAuth: false,
         walletError: new ConfigError(
           "Failed to decrypt encrypted_key — wrong passphrase or corrupted keystore.",
-          "Check DEXALOT_KEYSTORE_PASSWORD, or re-run `dexalot config init` to recreate the profile.",
+          "Check DEXALOT_KEYSTORE_PASSWORD, or re-run `dexalot init` to recreate the profile.",
         ),
       };
     }
@@ -182,7 +182,7 @@ function loadWallet(toml: DexalotProfile): { privateKey?: string; hasAuth: boole
         hasAuth: false,
         walletError: new ConfigError(
           "Profile uses the secrets vault but DEXALOT_VAULT_KEY is not set.",
-          "Set DEXALOT_VAULT_KEY to the vault key printed during `dexalot config init` " +
+          "Set DEXALOT_VAULT_KEY to the vault key printed during `dexalot init` " +
             "(e.g. source it from your OS keychain). Public reads work without it.",
         ),
       };
@@ -195,7 +195,7 @@ function loadWallet(toml: DexalotProfile): { privateKey?: string; hasAuth: boole
         hasAuth: false,
         walletError: new ConfigError(
           `Failed to read "${secretName}" from the secrets vault — wrong DEXALOT_VAULT_KEY or missing entry.`,
-          "Check DEXALOT_VAULT_KEY, or re-run `dexalot config init` to recreate the profile.",
+          "Check DEXALOT_VAULT_KEY, or re-run `dexalot init` to recreate the profile.",
         ),
       };
     }

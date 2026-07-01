@@ -69,6 +69,11 @@ async function dispatch(v: CliValues): Promise<void> {
     await handleConfigCommand(action ?? "", rest, { profile: v.profile });
     return;
   }
+  // Top-level alias: `dexalot init` == `dexalot config init` (the setup wizard).
+  if (module === "init") {
+    await handleConfigCommand("init", [action, ...rest].filter(Boolean), { profile: v.profile });
+    return;
+  }
   if (module === "discovery" || module === "list-tools") {
     const filter = action === "list-tools" || action === "all" ? undefined : action;
     cmdListTools(filter, { json: v.json });

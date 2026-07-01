@@ -31,7 +31,7 @@ network     = "mainnet"        # mainnet | testnet | devnet
 1     = ["https://eth.llamarpc.com"]
 ```
 
-See [config.toml.example](../config.toml.example) for the canonical template. Run `dexalot config init` for an interactive wizard.
+See [config.toml.example](../config.toml.example) for the canonical template. Run `dexalot init` for an interactive wizard.
 
 ## Networks
 
@@ -85,7 +85,17 @@ dexalot-trade-mcp --network devnet --read-only --modules all
 
 Useful in CI — no wallet required, every public endpoint reachable.
 
-## MCP host registration
+## Connect your AI tools
+
+The interactive wizard registers your tool(s) for you (and sets up signing) — this is all most people need:
+
+```bash
+dexalot init
+```
+
+### Non-interactive registration (scripting / CI)
+
+To register a single client directly, without prompts:
 
 ```bash
 dexalot-trade-mcp setup --client claude-desktop
@@ -93,14 +103,17 @@ dexalot-trade-mcp setup --client cursor
 dexalot-trade-mcp setup --client windsurf
 dexalot-trade-mcp setup --client vscode      # writes .mcp.json in cwd
 dexalot-trade-mcp setup --client claude-code # auto-registers via the claude CLI
+dexalot-trade-mcp setup --client codex       # writes ~/.codex/config.toml
 ```
 
 Optional flags forwarded to the MCP entry: `--profile <name>`, `--modules <list>`.
 
+> **ChatGPT** connects to remote MCP servers only (Developer mode), so it can't be auto-registered by `init`/`setup` — see the [setup page](https://dexalot.com/en/trade-kit) for the connector steps.
+
 ## Profile management
 
 ```bash
-dexalot config init                          # interactive wizard
+dexalot init                          # interactive wizard
 dexalot config list-profile                  # list profiles (* marks default)
 dexalot config show --profile live           # show one profile (masked key)
 dexalot config use test                      # set default_profile

@@ -14,7 +14,7 @@ export interface DexalotProfile {
   private_key?: string;
   /**
    * Encrypted private key — an ethers (scrypt + AES) JSON keystore string. Written by
-   * `dexalot config init` when the user opts to encrypt. Decrypted at runtime with the
+   * `dexalot init` when the user opts to encrypt. Decrypted at runtime with the
    * passphrase from the DEXALOT_KEYSTORE_PASSWORD env var. Preferred over `private_key`
    * for at-rest safety: the file alone is useless without the passphrase.
    */
@@ -85,7 +85,7 @@ export function readFullConfig(): DexalotTomlConfig {
       "If your private key or values contain special characters:\n" +
       "  - Contains # \\ \"  -> use single quotes:  private_key = '0xabc'\n" +
       "  - Contains '       -> use double quotes:  private_key = \"0xabc\"\n" +
-      "Or re-run: dexalot config init",
+      "Or re-run: dexalot init",
     );
   }
 }

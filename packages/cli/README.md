@@ -14,7 +14,7 @@ npm install -g @dexalot/trade-cli
 Run the interactive wizard:
 
 ```bash
-dexalot config init
+dexalot init
 ```
 
 …or hand-edit `~/.dexalot/config.toml`:

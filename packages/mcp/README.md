@@ -15,7 +15,7 @@ npm install -g @dexalot/trade-mcp @dexalot/trade-cli
 Run the interactive wizard:
 
 ```bash
-dexalot config init
+dexalot init
 ```
 
 …or hand-edit `~/.dexalot/config.toml`:
@@ -44,13 +44,24 @@ dexalot-trade-mcp --help
 
 ### Register with an MCP host
 
+Most people should just run the one-step wizard, which sets up signing **and** connects your AI tools:
+
+```bash
+npx -y @dexalot/trade-cli init
+```
+
+For scripting / CI, register a single client non-interactively:
+
 ```bash
 dexalot-trade-mcp setup --client claude-code
 dexalot-trade-mcp setup --client claude-desktop
 dexalot-trade-mcp setup --client cursor
 dexalot-trade-mcp setup --client windsurf
 dexalot-trade-mcp setup --client vscode   # writes .mcp.json in cwd
+dexalot-trade-mcp setup --client codex    # writes ~/.codex/config.toml
 ```
+
+> **ChatGPT** connects to remote MCP servers only — it can't run a local command, so use its Developer-mode connector flow instead.
 
 …or hand-edit your client config (Claude Desktop shown):
 

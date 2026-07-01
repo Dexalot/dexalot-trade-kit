@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Non-destructive end-to-end test of `config init` + client auto-registration.
+# Non-destructive end-to-end test of `dexalot init` (the setup wizard) + client auto-registration.
 # Drives the interactive wizard over a PTY against a throwaway HOME, then asserts:
 #   - the profile was saved with key_source = "vault" (SDK secrets vault)
 #   - the selected client config was written with the DEXALOT_VAULT_KEY env + --read-only
@@ -40,7 +40,7 @@ signal.signal(signal.SIGALRM, lambda *a: (_ for _ in ()).throw(TimeoutError()))
 signal.alarm(45)
 pid, fd = pty.fork()
 if pid == 0:
-    os.execvp("node", ["node", CLI, "config", "init"])
+    os.execvp("node", ["node", CLI, "init"])
 
 out = b""; sent = 0
 try:
@@ -103,6 +103,6 @@ if fails:
     for f in fails:
         print("  -", f)
     sys.exit(1)
-print("PASS: config init stored the key in the secrets vault, auto-registered Claude")
+print("PASS: dexalot init stored the key in the secrets vault, auto-registered Claude")
 print("      Desktop (DEXALOT_VAULT_KEY env + --read-only), and never leaked the key.")
 PY

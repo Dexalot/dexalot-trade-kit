@@ -17,7 +17,7 @@ export function printHelp(cliVersion: string, gitHash: string): void {
   const aliasLines = [
     moduleLine("clob"),
     moduleLine("config"),
-    moduleLine("setup"),
+    `  ${"init".padEnd(16)} One-step setup: create a profile + connect your AI tools`,
   ];
 
   const help = `
@@ -25,7 +25,7 @@ Dexalot CLI ${cliVersion} (${gitHash})
 
 USAGE
   dexalot <module> <action> [args] [--flag value]
-  dexalot setup --client <claude-desktop|cursor|windsurf|vscode|claude-code>
+  dexalot init                          One-step interactive setup (profile + AI tools)
   dexalot config <init|show|set|add-profile|list-profile|use> ...
   dexalot --help [<module>]
   dexalot --version
@@ -57,8 +57,7 @@ CREDENTIALS (priority: env var > profile in ${configFilePath()})
 
 EXAMPLES
   dexalot --version
-  dexalot setup --client claude-code
-  dexalot config init
+  dexalot init
   dexalot market get-pairs --network testnet
   dexalot market get-candles --pair ALOT/USDC --periodfrom 2026-05-01 --periodto 2026-05-25 --intervalnum 1 --intervalstr hours
 `;

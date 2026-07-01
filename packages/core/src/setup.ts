@@ -3,8 +3,9 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { execFileSync } from "node:child_process";
 import { configFilePath } from "./config/toml.js";
+import { parse as tomlParse, stringify as tomlStringify } from "smol-toml";
 
-export type ClientId = "claude-desktop" | "cursor" | "windsurf" | "vscode" | "claude-code";
+export type ClientId = "claude-desktop" | "cursor" | "windsurf" | "vscode" | "claude-code" | "codex";
 
 export interface SetupOptions {
   client: ClientId;
@@ -22,6 +23,7 @@ export const CLIENT_NAMES: Record<ClientId, string> = {
   windsurf: "Windsurf",
   vscode: "VS Code",
   "claude-code": "Claude Code CLI",
+  codex: "Codex CLI",
 };
 
 export const SUPPORTED_CLIENTS = Object.keys(CLIENT_NAMES) as ClientId[];
@@ -79,6 +81,9 @@ export function getConfigPath(client: ClientId): string | null {
       return path.join(home, ".codeium", "windsurf", "mcp_config.json");
     case "vscode":
       return path.join(process.cwd(), ".mcp.json");
+    case "codex":
+      // Codex CLI reads a TOML config; global scope is the most reliable.
+      return path.join(home, ".codex", "config.toml");
     case "claude-code":
       return null;
   }
@@ -167,6 +172,40 @@ function mergeJsonConfig(
   fs.writeFileSync(configPath, JSON.stringify(data, null, 2) + "\n", "utf-8");
 }
 
+/**
+ * Codex CLI is configured via TOML (`~/.codex/config.toml`) using
+ * `[mcp_servers.<name>]` tables rather than the JSON `mcpServers` map every
+ * other client uses. Parse → merge our server → write back (backing up first).
+ */
+function mergeTomlConfig(
+  configPath: string,
+  serverName: string,
+  entry: Record<string, unknown>
+): void {
+  const dir = path.dirname(configPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  let data: Record<string, unknown> = {};
+  if (fs.existsSync(configPath)) {
+    const raw = fs.readFileSync(configPath, "utf-8");
+    try {
+      data = tomlParse(raw) as unknown as Record<string, unknown>;
+    } catch {
+      throw new Error(`Failed to parse existing config at ${configPath}`);
+    }
+    const backupPath = configPath + ".bak";
+    fs.copyFileSync(configPath, backupPath);
+    process.stdout.write(`  Backup -> ${backupPath}\n`);
+  }
+
+  if (typeof data.mcp_servers !== "object" || data.mcp_servers === null) {
+    data.mcp_servers = {};
+  }
+  (data.mcp_servers as Record<string, unknown>)[serverName] = entry;
+
+  fs.writeFileSync(configPath, tomlStringify(data) + "\n", "utf-8");
+}
+
 export function printSetupUsage(): void {
   process.stdout.write(
     `Usage: dexalot-trade-mcp setup --client <client> [--profile <name>] [--modules <list>]\n\n` +
@@ -204,6 +243,25 @@ export function runSetup(options: SetupOptions): void {
     process.stdout.write(`Running: claude mcp add ${serverName} -- ${command} ${[...baseArgs, ...args].join(" ")}\n`);
     execFileSync("claude", claudeArgs, { stdio: "inherit" }); // NOSONAR
     process.stdout.write(`✓ Configured ${name}\n`);
+    return;
+  }
+
+  if (client === "codex") {
+    // Codex reads TOML and launches the server as a local stdio subprocess.
+    const { command, baseArgs } = serverInvocation(client);
+    const entry: Record<string, unknown> = { command, args: [...baseArgs, ...args] };
+    if (options.env && Object.keys(options.env).length > 0) entry.env = options.env;
+    // npx cold-install can exceed Codex's 10s default startup timeout.
+    entry.startup_timeout_sec = 20;
+    const codexPath = getConfigPath(client);
+    if (!codexPath) throw new Error(`${name} is not supported on this platform`);
+    mergeTomlConfig(codexPath, serverName, entry);
+    process.stdout.write(
+      `✓ Configured ${name}\n` +
+        `  ${codexPath}\n` +
+        `  Server args: ${args.join(" ")}\n` +
+        `  Restart your Codex session to apply changes.\n`
+    );
     return;
   }
 
