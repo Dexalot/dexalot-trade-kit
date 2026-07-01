@@ -65,14 +65,11 @@ That third option is the headline. Connect a mobile or hardware wallet, and the 
 ## Set it up in about a minute
 
 ```bash
-# 1) Connect the kit to your AI client (starts read-only, no wallet needed)
-npx -y @dexalot/trade-mcp setup --client claude-desktop
-
-# 2) Add a wallet and turn on trading — one interactive wizard
-npx -y @dexalot/trade-cli config init
+# One interactive wizard — pick your AI tool(s), choose how to sign, done
+npx -y @dexalot/trade-cli init
 ```
 
-The wizard asks for a network (mainnet, testnet, or devnet), how you want to sign (local key, WalletConnect, or read-only), and which AI clients to wire up — then registers them for you. Restart your client and ask it *"what are my Dexalot capabilities?"* to confirm you're live. Prefer the terminal? The same `dexalot` command works standalone, and Claude Code users can grab it from the plugin marketplace in one step.
+That single command asks for a network (mainnet, testnet, or devnet), how you want to sign (local key, WalletConnect, or read-only), and which AI tools to connect (Claude Desktop, Claude Code, Cursor, Codex, Windsurf, VS Code) — then wires them up for you. Restart your tool and ask it *"what are my Dexalot capabilities?"* to confirm you're live. Using **ChatGPT**? It connects to remote MCP servers only, so it takes a couple of extra steps — see the [setup page](https://dexalot.com/en/trade-kit). Claude Code users can also grab it from the plugin marketplace in one step.
 
 ## Built to be safe
 
@@ -87,7 +84,7 @@ The wizard asks for a network (mainnet, testnet, or devnet), how you want to sig
 The Dexalot Trade Kit is open source (MIT). Point your AI at it, ask for your balances, and place your first order in plain English.
 
 ```bash
-npx -y @dexalot/trade-mcp setup --client claude-desktop
+npx -y @dexalot/trade-cli init
 ```
 
 Then just… ask.

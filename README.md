@@ -52,21 +52,13 @@ It runs as a **local process** with your wallet private key stored only on your 
 
 **Prerequisites:** Node.js ≥ 18.
 
-One command registers the MCP server with your AI client — no global install needed:
+One interactive command sets up everything — a profile **and** your AI tools — no global install needed:
 
 ```bash
-npx -y @dexalot/trade-mcp setup --client claude-desktop   # or: claude-code | cursor | vscode | windsurf
+npx -y @dexalot/trade-cli init
 ```
 
-It starts **`--read-only` on mainnet** — no wallet needed for market data, analytics, and balance reads.
-
-### Enable trading (add a wallet) — one command
-
-```bash
-npx -y @dexalot/trade-cli config init
-```
-
-The wizard asks for a profile name, network, and your wallet's private key (input hidden), then offers to **encrypt it in the Dexalot secrets vault** (`~/.dexalot/secrets_vault.json`, Fernet-encrypted via the SDK). It prints a one-time **vault key** — save it; it decrypts your key and is not stored anywhere. Finally a **checkbox registers MCP clients for you**, wiring the profile in (and the vault key) so you don't hand-edit any config. Pick one or several:
+The wizard asks for a profile name, network, and **how you want to sign**: a local private key, WalletConnect (no key on disk), or read-only (no wallet — you still get market data, analytics, and balance reads). For a local key, input is hidden and it offers to **encrypt it in the Dexalot secrets vault** (`~/.dexalot/secrets_vault.json`, Fernet-encrypted via the SDK), printing a one-time **vault key** — save it; it decrypts your key and is not stored anywhere. Finally a **checkbox connects your AI tools for you**, wiring the profile in (and the vault key) so you don't hand-edit any config. Pick one or several:
 
 ```
 Register the MCP server with which clients?
@@ -76,17 +68,20 @@ Register the MCP server with which clients?
    ◯ Windsurf
    ◯ VS Code
    ◯ Claude Code CLI
+   ◯ Codex CLI
 Enable trading (write tools: orders, deposits, swaps)? (y/N): N
 ✓ Configured Claude Desktop
 ```
 
-The key stays on your machine (encrypted in the vault) and is only used to sign locally. The client is registered **`--read-only` by default** — answer `y` to "Enable trading" to expose write tools. Restart your AI client, then ask *"What are my Dexalot capabilities?"* — it should report `hasWallet: true`.
+A local key stays on your machine (encrypted in the vault) and only signs locally. Clients are registered **`--read-only` by default** — answer `y` to "Enable trading" to expose write tools. Restart your AI tool, then ask *"What are my Dexalot capabilities?"*.
 
-> Prefer to wire it up yourself? Skip the checkbox and run `dexalot setup --client <name> --profile <name>` later; set `DEXALOT_VAULT_KEY` (the printed vault key) in the client's env so the server can decrypt at launch.
+> **Using ChatGPT?** It connects to remote MCP servers only (Developer mode), so it isn't auto-registered — see the [setup page](https://dexalot.com/en/trade-kit) for the connector steps.
+>
+> **Scripting it?** The non-interactive `dexalot setup --client <name> --profile <name>` registers a single client without prompts; set `DEXALOT_VAULT_KEY` (the printed vault key) in the client's env so the server can decrypt at launch.
 
 ### Or: no key on disk — WalletConnect (experimental)
 
-At the `config init` **"How do you want to sign?"** prompt, pick **`[2] WalletConnect`** to create a `key_source = "walletconnect"` profile. **Nothing is stored on your machine** — the kit pairs with your wallet app over WalletConnect (using a built-in Reown project; no setup needed) and your wallet approves each signature. Because every write is approved in your wallet, `config init` **enables the write tools by default** for WalletConnect profiles (a stored-key profile defaults to read-only, since a key can sign without prompting). Then:
+At the `init` wizard's **"How do you want to sign?"** prompt, pick **`[2] WalletConnect`** to create a `key_source = "walletconnect"` profile. **Nothing is stored on your machine** — the kit pairs with your wallet app over WalletConnect (using a built-in Reown project; no setup needed) and your wallet approves each signature. Because every write is approved in your wallet, `init` **enables the write tools by default** for WalletConnect profiles (a stored-key profile defaults to read-only, since a key can sign without prompting). Then:
 
 ```bash
 dexalot wallet connect      # shows a QR + wc: URI — scan it in your wallet
@@ -203,7 +198,7 @@ Local QA scripts (no funds, nothing written to your real config — they use an 
 ./scripts/test-reads.sh             # public + signed reads across modules
 ./scripts/test-mcp-stdio.sh         # JSON-RPC handshake + sample tool calls
 ./scripts/test-mcp-registration.sh  # claude mcp add → get → list → remove lifecycle
-./scripts/test-config-init.sh       # config init wizard + client auto-register (PTY)
+./scripts/test-config-init.sh       # init wizard + client auto-register (PTY)
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the layered architecture, mountpoint mapping, and SDK boundary rules.

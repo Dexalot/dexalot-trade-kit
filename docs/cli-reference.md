@@ -2,7 +2,7 @@
 
 ```
 dexalot <module> <action> [args] [--flag value]
-dexalot setup --client <claude-desktop|cursor|windsurf|vscode|claude-code>
+dexalot init                         # one-step setup: profile + connect your AI tools
 dexalot config <init|show|set|use|add-profile|list-profile>
 dexalot discovery [list-tools|all|<module>]
 dexalot --help [<module>]

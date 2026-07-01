@@ -111,7 +111,9 @@ Run locally:
 ```bash
 node packages/cli/dist/index.js market get-pairs --network devnet
 node packages/mcp/dist/index.js --read-only --network devnet --modules market
-node packages/mcp/dist/index.js setup --client claude-code
+node packages/cli/dist/index.js init                          # interactive setup wizard (profile + AI tools)
+# `setup --client <id>` is the non-interactive primitive `init` reuses (scripting/CI):
+#   node packages/mcp/dist/index.js setup --client claude-code
 ```
 
 **SDK is marked `external` in both mcp and cli tsup configs.** Bundling it triggers `Dynamic require of "ethers" is not supported` because the SDK uses CJS-style require. Don't change this.

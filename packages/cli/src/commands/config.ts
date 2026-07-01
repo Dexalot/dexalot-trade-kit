@@ -324,7 +324,7 @@ async function registerClients(ctx: {
     return; // aborted (Ctrl-C)
   }
   if (selected.length === 0) {
-    outputLine("  No clients selected — register later with: dexalot setup --client <name>");
+    outputLine("  No tools connected — run `dexalot init` again anytime to connect them.");
     return;
   }
 
@@ -416,7 +416,7 @@ export function cmdConfigSet(profileName: string, key: string, value: string): v
 export function cmdConfigUse(profileName: string): void {
   const config = readFullConfig();
   if (!config.profiles[profileName]) {
-    errorLine(`Profile "${profileName}" does not exist. Create it with: dexalot config init --profile ${profileName}`);
+    errorLine(`Profile "${profileName}" does not exist. Create it with: dexalot init --profile ${profileName}`);
     process.exitCode = 1; return;
   }
   config.default_profile = profileName;
@@ -428,7 +428,7 @@ export function cmdConfigListProfile(): void {
   const config = readFullConfig();
   const names = Object.keys(config.profiles);
   if (names.length === 0) {
-    outputLine("No profiles configured. Run: dexalot config init");
+    outputLine("No profiles configured. Run: dexalot init");
     return;
   }
   outputLine(`Profiles in ${configFilePath()}:`);
