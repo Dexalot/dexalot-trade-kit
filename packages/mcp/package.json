@@ -1,6 +1,6 @@
 {
   "name": "@dexalot/trade-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dexalot MCP Server — Model Context Protocol server for the Dexalot DEX",
   "type": "module",
   "license": "MIT",

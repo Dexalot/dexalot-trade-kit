@@ -1,7 +1,7 @@
 {
   "name": "dexalot-trade",
   "description": "Dexalot DEX trading skills + MCP server: market data, CLOB orders, RFQ swaps, portfolio balances, cross-chain transfers, analytics, leaderboards, and rewards. The 12 skills drive the `dexalot` CLI; the bundled MCP server exposes the same tool registry to MCP hosts.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "Dexalot",
     "url": "https://dexalot.com"
@@ -9,12 +9,27 @@
   "homepage": "https://github.com/dexalot/dexalot-trade-kit",
   "repository": "https://github.com/dexalot/dexalot-trade-kit",
   "license": "MIT",
-  "keywords": ["dexalot", "dex", "trading", "defi", "avalanche", "rfq", "clob", "mcp"],
+  "keywords": [
+    "dexalot",
+    "dex",
+    "trading",
+    "defi",
+    "avalanche",
+    "rfq",
+    "clob",
+    "mcp"
+  ],
   "mcpServers": {
     "dexalot-trade-mcp": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@dexalot/trade-mcp", "--network", "mainnet", "--read-only"]
+      "args": [
+        "-y",
+        "@dexalot/trade-mcp",
+        "--network",
+        "mainnet",
+        "--read-only"
+      ]
     }
   }
 }

@@ -4,17 +4,17 @@ description: "Use this skill when the user asks for: list of previously submitte
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.1.0"
-  homepage: "https://app.dexalot.com"
+  version: '0.1.1'
+  homepage: 'https://app.dexalot.com'
   agent:
     requires:
-      bins: ["dexalot"]
+      bins: ['dexalot']
     install:
       - id: npm
         kind: node
-        package: "@dexalot/trade-cli@0.1.0"
-        bins: ["dexalot"]
-        label: "Install dexalot CLI (npm)"
+        package: '@dexalot/trade-cli@0.1.1'
+        bins: ['dexalot']
+        label: 'Install dexalot CLI (npm)'
 ---
 
 # Dexalot Trader History CLI
@@ -27,10 +27,10 @@ Follow [`../_shared/preflight.md`](../_shared/preflight.md). Both commands requi
 
 ## Command index
 
-| Command | Auth | Description |
-|---|:-:|---|
-| `dexalot trader-history get` | ✓ | List previous export requests for the account |
-| `dexalot trader-history register --periodfrom 2026-01-01 --periodto 2026-05-25` | ✓ | Register a new export request |
+| Command                                                                         | Auth | Description                                   |
+| ------------------------------------------------------------------------------- | :--: | --------------------------------------------- |
+| `dexalot trader-history get`                                                    |  ✓   | List previous export requests for the account |
+| `dexalot trader-history register --periodfrom 2026-01-01 --periodto 2026-05-25` |  ✓   | Register a new export request                 |
 
 ## Workflow
 

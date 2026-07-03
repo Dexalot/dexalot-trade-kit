@@ -52,16 +52,17 @@ Every tool is a `ToolSpec`:
 
 ```ts
 interface ToolSpec {
-  name: string;                                          // "market_get_pairs"
-  module: ModuleId;                                      // "market" | "clob.read" | "clob.write" | …
-  description: string;                                   // ≤ 900 chars; agent activation trigger
-  inputSchema: JsonSchema;                               // MCP Tool["inputSchema"]
-  isWrite: boolean;                                      // true → dropped by --read-only
-  handler: (args, ctx) => Promise<unknown>;              // ctx = { config, client, contract }
+	name: string; // "market_get_pairs"
+	module: ModuleId; // "market" | "clob.read" | "clob.write" | …
+	description: string; // ≤ 900 chars; agent activation trigger
+	inputSchema: JsonSchema; // MCP Tool["inputSchema"]
+	isWrite: boolean; // true → dropped by --read-only
+	handler: (args, ctx) => Promise<unknown>; // ctx = { config, client, contract }
 }
 ```
 
 `buildTools(config)` applies two filter passes at startup:
+
 1. **Module filter** — drop tools whose `module` isn't in `config.modules`
 2. **Read-only filter** — if `config.readOnly`, drop every `isWrite=true` tool
 
@@ -71,16 +72,17 @@ The CLI gets the same `ToolSpec[]` via `createToolRunner` and translates `dexalo
 
 `DexalotRestClient` in `packages/core/src/client/rest-client.ts` takes a `mountpoint` parameter on every request. Each mountpoint maps to a sub-path under the network host:
 
-| Mountpoint | Path | Auth | Convenience method |
-|---|---|---|---|
-| `trade` | `${baseUrl}/trading/` | none | `tradeGet`, `tradePost` |
-| `signed` | `${baseUrl}/trading/signed/` | `x-signature: <addr>:<sig>` | `signedGet`, `signedPost` |
-| `swap` | `${baseUrl}/rfq/` | path-conditional | `swapGet` |
-| `analytics` | `${baseUrl}/stats/` | none | `analyticsGet` |
-| `info` | `${baseUrl}/info/` | none | `infoGet` |
-| `merkl` | `https://api.merkl.xyz/v4/` | none (external) | `merklGet` |
+| Mountpoint  | Path                         | Auth                        | Convenience method        |
+| ----------- | ---------------------------- | --------------------------- | ------------------------- |
+| `trade`     | `${baseUrl}/trading/`        | none                        | `tradeGet`, `tradePost`   |
+| `signed`    | `${baseUrl}/trading/signed/` | `x-signature: <addr>:<sig>` | `signedGet`, `signedPost` |
+| `swap`      | `${baseUrl}/rfq/`            | path-conditional            | `swapGet`                 |
+| `analytics` | `${baseUrl}/stats/`          | none                        | `analyticsGet`            |
+| `info`      | `${baseUrl}/info/`           | none                        | `infoGet`                 |
+| `merkl`     | `https://api.merkl.xyz/v4/`  | none (external)             | `merklGet`                |
 
 **Path-conditional auth on `swap`:**
+
 - `swap_get_firm_quote` (`firmQuote`) → injects `x-signature`
 - `swap_get_quote` soft variant (`pairprice`) → injects `x-wallet-address` only
 - `swap_get_pairs` → no auth
@@ -93,36 +95,36 @@ The CLI gets the same `ToolSpec[]` via `createToolRunner` and translates `dexalo
 
 ### SDK-native (routed through the SDK)
 
-| Tools | SDK method(s) |
-|---|---|
-| `market_get_pairs` | `getClobPairs` |
-| `market_get_tokens` | `getTokens` |
-| `market_get_environments` | `getEnvironments` |
-| `market_get_orderbook` | `getOrderBook` |
-| `market_get_candles` | `getCandles` |
-| `market_get_deployed_contracts` | `getDeployment` (env/contractType/returnAbi opts) |
-| `clob_get_open_orders` | `getOpenOrders` |
-| `clob_get_order` | `getOrder` |
-| `clob_get_order_by_client_id` | `getOrderByClientId` |
-| `clob_get_orders_by_account` | `getOrderHistory` |
-| all 9 `clob.write` | `addOrder` / `addLimitOrderList` / `cancelOrder` / … |
-| `swap_get_pairs` / `get_quote` / `get_firm_quote` / `execute` | `getSwapPairs` / `getSwapSoftQuote` / `getSwapFirmQuote` / `executeRFQSwap` |
-| `portfolio_get_balance` / `get_all_balances` / `get_chain_balance(s)` / `get_all_chain_balances` | `getPortfolioBalance` / … |
-| `portfolio_get_token_usd_prices` | `getTokenUsdPrices` |
-| `portfolio_get_token_usd_price_history` | `getTokenPriceHistory` |
-| `portfolio_get_token_hourly_usd_price_history` | `getTokenHourlyPriceHistory` |
-| all transfer writes + `get_deposit_bridge_fee` + `get_token_details` | `deposit` / `withdraw` / `addGas` / `removeGas` / `transferPortfolio` / … |
-| `transfer_get_combined_transfers` | `getCombinedTransfers` |
-| revert-reason decoding | `getRevertReason` |
+| Tools                                                                                            | SDK method(s)                                                               |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `market_get_pairs`                                                                               | `getClobPairs`                                                              |
+| `market_get_tokens`                                                                              | `getTokens`                                                                 |
+| `market_get_environments`                                                                        | `getEnvironments`                                                           |
+| `market_get_orderbook`                                                                           | `getOrderBook`                                                              |
+| `market_get_candles`                                                                             | `getCandles`                                                                |
+| `market_get_deployed_contracts`                                                                  | `getDeployment` (env/contractType/returnAbi opts)                           |
+| `clob_get_open_orders`                                                                           | `getOpenOrders`                                                             |
+| `clob_get_order`                                                                                 | `getOrder`                                                                  |
+| `clob_get_order_by_client_id`                                                                    | `getOrderByClientId`                                                        |
+| `clob_get_orders_by_account`                                                                     | `getOrderHistory`                                                           |
+| all 9 `clob.write`                                                                               | `addOrder` / `addLimitOrderList` / `cancelOrder` / …                        |
+| `swap_get_pairs` / `get_quote` / `get_firm_quote` / `execute`                                    | `getSwapPairs` / `getSwapSoftQuote` / `getSwapFirmQuote` / `executeRFQSwap` |
+| `portfolio_get_balance` / `get_all_balances` / `get_chain_balance(s)` / `get_all_chain_balances` | `getPortfolioBalance` / …                                                   |
+| `portfolio_get_token_usd_prices`                                                                 | `getTokenUsdPrices`                                                         |
+| `portfolio_get_token_usd_price_history`                                                          | `getTokenPriceHistory`                                                      |
+| `portfolio_get_token_hourly_usd_price_history`                                                   | `getTokenHourlyPriceHistory`                                                |
+| all transfer writes + `get_deposit_bridge_fee` + `get_token_details`                             | `deposit` / `withdraw` / `addGas` / `removeGas` / `transferPortfolio` / …   |
+| `transfer_get_combined_transfers`                                                                | `getCombinedTransfers`                                                      |
+| revert-reason decoding                                                                           | `getRevertReason`                                                           |
 
 ### REST-only (SDK has no equivalent — documented gap)
 
-| Tools | Why REST |
-|---|---|
-| `market_get_oldest_candle_ts`, `market_get_app_settings`, `market_get_blacklisted_addresses` | no SDK method |
-| `portfolio_get_balance_proof` | no SDK method (Merkle-proof signing endpoint) |
-| all `analytics`, `info`, `leaderboard`, `vaults`, `trader_history`, `pnl` | no SDK methods (the SDK is a trading/account SDK; these are backend analytics/social endpoints) |
-| `rewards_*` subnet-incentives/breakdown/signature | signed REST; `rewards_get_stake_merkl` → external Merkl API |
+| Tools                                                                                        | Why REST                                                                                        |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `market_get_oldest_candle_ts`, `market_get_app_settings`, `market_get_blacklisted_addresses` | no SDK method                                                                                   |
+| `portfolio_get_balance_proof`                                                                | no SDK method (Merkle-proof signing endpoint)                                                   |
+| all `analytics`, `info`, `leaderboard`, `vaults`, `trader_history`, `pnl`                    | no SDK methods (the SDK is a trading/account SDK; these are backend analytics/social endpoints) |
+| `rewards_*` subnet-incentives/breakdown/signature                                            | signed REST; `rewards_get_stake_merkl` → external Merkl API                                     |
 
 The SDK is initialized **lazily** on the first call that needs it — including the now-SDK-routed market reads. Pure-REST tools (analytics, info, etc.) never trigger SDK init.
 
@@ -146,15 +148,15 @@ All errors extend `DexalotMcpError`. `toToolErrorPayload(error)` serializes any 
 
 ```json
 {
-  "tool": "...",
-  "error": true,
-  "type": "DexalotApiError",
-  "code": "404",
-  "message": "...",
-  "suggestion": "...",
-  "endpoint": "GET orders",
-  "traceId": "...",
-  "timestamp": "..."
+	"tool": "...",
+	"error": true,
+	"type": "DexalotApiError",
+	"code": "404",
+	"message": "...",
+	"suggestion": "...",
+	"endpoint": "GET orders",
+	"traceId": "...",
+	"timestamp": "..."
 }
 ```
 
@@ -177,12 +179,12 @@ A pattern→suggestion table (`DEXALOT_ERROR_SUGGESTIONS`) enriches error messag
 
 Token-bucket per `key` in `packages/core/src/utils/rate-limiter.ts`. Factories in `tools/common.ts`:
 
-| Factory | Default RPS |
-|---|---|
-| `publicRateLimit(key, rps=10)` | 10 |
-| `signedRateLimit(key, rps=5)` | 5 |
-| `swapRateLimit(key, rps=5)` | 5 |
-| `merklRateLimit(key, rps=1)` | 1 |
+| Factory                        | Default RPS |
+| ------------------------------ | ----------- |
+| `publicRateLimit(key, rps=10)` | 10          |
+| `signedRateLimit(key, rps=5)`  | 5           |
+| `swapRateLimit(key, rps=5)`    | 5           |
+| `merklRateLimit(key, rps=1)`   | 1           |
 
 Each tool handler picks the factory matching its mountpoint. Callers block transparently up to `maxWaitMs` (30 s default), then throw `RateLimitError`.
 
@@ -192,12 +194,12 @@ Every MCP tool response carries:
 
 ```ts
 interface CapabilitySnapshot {
-  readOnly: boolean;
-  hasAuth: boolean;
-  hasWallet: boolean;
-  network: "mainnet" | "testnet" | "devnet";
-  address?: string;
-  moduleAvailability: Record<ModuleId, { status: "enabled" | "disabled" | "requires_auth"; reasonCode?: string }>;
+	readOnly: boolean;
+	hasAuth: boolean;
+	hasWallet: boolean;
+	network: 'mainnet' | 'testnet' | 'devnet';
+	address?: string;
+	moduleAvailability: Record<ModuleId, { status: 'enabled' | 'disabled' | 'requires_auth'; reasonCode?: string }>;
 }
 ```
 
@@ -205,11 +207,11 @@ A meta-tool `system_get_capabilities` returns the same shape on demand. Agents a
 
 ## 10. Networks
 
-| `--network` | API base | WS (v2) | SDK `parentEnv` (default) |
-|---|---|---|---|
-| `mainnet` | `https://api.dexalot.com/api` | `wss://api.dexalot.com/api/ws` | `production-multi-avax` |
-| `testnet` | `https://api.dexalot-test.com/api` | `wss://api.dexalot-test.com/api/ws` | `fuji-multi-avax` |
-| `devnet` | `https://api.dexalot-dev.com/api` | `wss://api.dexalot-dev.com/api/ws` | `fuji-multi-avax` (override `api_base_url` to point at devnet) |
+| `--network` | API base                           | WS (v2)                             | SDK `parentEnv` (default)                                      |
+| ----------- | ---------------------------------- | ----------------------------------- | -------------------------------------------------------------- |
+| `mainnet`   | `https://api.dexalot.com/api`      | `wss://api.dexalot.com/api/ws`      | `production-multi-avax`                                        |
+| `testnet`   | `https://api.dexalot-test.com/api` | `wss://api.dexalot-test.com/api/ws` | `fuji-multi-avax`                                              |
+| `devnet`    | `https://api.dexalot-dev.com/api`  | `wss://api.dexalot-dev.com/api/ws`  | `fuji-multi-avax` (override `api_base_url` to point at devnet) |
 
 WebSocket is **deferred to v2** — REST polling covers the agent flows we need (orderbook, open orders, balances, etc.). The frontend's WebSocket topic catalog is documented for the eventual implementation.
 
@@ -220,15 +222,15 @@ Markdown files under `skills/<name>/SKILL.md` with YAML frontmatter:
 ```yaml
 ---
 name: dexalot-<module>
-description: "Use this skill when the user asks for: …  Do NOT use for: … (≤900 chars)"
+description: 'Use this skill when the user asks for: …  Do NOT use for: … (≤900 chars)'
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.1.0"
+  version: '0.1.1'
   agent:
     requires:
-      bins: ["dexalot"]
-    install: [{ id: npm, kind: node, package: "@dexalot/trade-cli@0.1.0", bins: ["dexalot"] }]
+      bins: ['dexalot']
+    install: [{ id: npm, kind: node, package: '@dexalot/trade-cli@0.1.1', bins: ['dexalot'] }]
 ---
 ```
 
@@ -238,22 +240,22 @@ All skills call the CLI (`dexalot market get-pairs`), not MCP tool names directl
 
 ## 12. Key file reference
 
-| Component | Path |
-|---|---|
-| Entry: MCP server | `packages/mcp/src/index.ts` |
-| Entry: CLI | `packages/cli/src/index.ts` |
-| Tool registry root | `packages/core/src/tools/index.ts` |
-| `ToolSpec` interface | `packages/core/src/tools/types.ts` |
-| Per-module tools | `packages/core/src/tools/{market,clob-read,clob-write,swap,portfolio,transfer,analytics,leaderboard,vaults,trader-history,rewards,pnl,info}.ts` |
-| REST client | `packages/core/src/client/rest-client.ts` |
-| Contract (SDK) wrapper | `packages/core/src/client/contract-client.ts` |
-| Merkl external | `packages/core/src/client/merkl-api.ts` |
-| Config + TOML | `packages/core/src/config.ts`, `packages/core/src/config/toml.ts` |
-| Constants (networks, modules) | `packages/core/src/constants.ts` |
-| Error hierarchy | `packages/core/src/utils/errors.ts` |
-| Rate limiter | `packages/core/src/utils/rate-limiter.ts` |
-| Update notifier | `packages/core/src/utils/update-check.ts` |
-| Setup wizard | `packages/core/src/setup.ts` |
-| MCP server | `packages/mcp/src/server.ts` |
-| CLI parser / dispatchers | `packages/cli/src/parser.ts`, `packages/cli/src/commands/*` |
-| Skills | `skills/dexalot-<module>/SKILL.md` |
+| Component                     | Path                                                                                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entry: MCP server             | `packages/mcp/src/index.ts`                                                                                                                     |
+| Entry: CLI                    | `packages/cli/src/index.ts`                                                                                                                     |
+| Tool registry root            | `packages/core/src/tools/index.ts`                                                                                                              |
+| `ToolSpec` interface          | `packages/core/src/tools/types.ts`                                                                                                              |
+| Per-module tools              | `packages/core/src/tools/{market,clob-read,clob-write,swap,portfolio,transfer,analytics,leaderboard,vaults,trader-history,rewards,pnl,info}.ts` |
+| REST client                   | `packages/core/src/client/rest-client.ts`                                                                                                       |
+| Contract (SDK) wrapper        | `packages/core/src/client/contract-client.ts`                                                                                                   |
+| Merkl external                | `packages/core/src/client/merkl-api.ts`                                                                                                         |
+| Config + TOML                 | `packages/core/src/config.ts`, `packages/core/src/config/toml.ts`                                                                               |
+| Constants (networks, modules) | `packages/core/src/constants.ts`                                                                                                                |
+| Error hierarchy               | `packages/core/src/utils/errors.ts`                                                                                                             |
+| Rate limiter                  | `packages/core/src/utils/rate-limiter.ts`                                                                                                       |
+| Update notifier               | `packages/core/src/utils/update-check.ts`                                                                                                       |
+| Setup wizard                  | `packages/core/src/setup.ts`                                                                                                                    |
+| MCP server                    | `packages/mcp/src/server.ts`                                                                                                                    |
+| CLI parser / dispatchers      | `packages/cli/src/parser.ts`, `packages/cli/src/commands/*`                                                                                     |
+| Skills                        | `skills/dexalot-<module>/SKILL.md`                                                                                                              |

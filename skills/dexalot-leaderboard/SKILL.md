@@ -4,17 +4,17 @@ description: "Use this skill when the user asks for: the trader rewards leaderbo
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.1.0"
-  homepage: "https://app.dexalot.com"
+  version: '0.1.1'
+  homepage: 'https://app.dexalot.com'
   agent:
     requires:
-      bins: ["dexalot"]
+      bins: ['dexalot']
     install:
       - id: npm
         kind: node
-        package: "@dexalot/trade-cli@0.1.0"
-        bins: ["dexalot"]
-        label: "Install dexalot CLI (npm)"
+        package: '@dexalot/trade-cli@0.1.1'
+        bins: ['dexalot']
+        label: 'Install dexalot CLI (npm)'
 ---
 
 # Dexalot Leaderboard CLI
@@ -22,6 +22,7 @@ metadata:
 Trader rewards leaderboard, per-trader reward info, and the claim-signature flow.
 
 **Skill routing:**
+
 - Reward rankings & claim signatures → `dexalot-leaderboard` (this skill)
 - Aggregate exchange volume rankings → `dexalot-analytics`
 - Staking rewards via Merkl → `dexalot-rewards`
@@ -32,20 +33,20 @@ Follow [`../_shared/preflight.md`](../_shared/preflight.md). Public lookups work
 
 ## Command index
 
-| Command | Auth | Description |
-|---|:-:|---|
-| `dexalot leaderboard get-top-traders --token T --pair P --dateperiod week\|month\|all` | — | Ranked top traders for a pair+token |
-| `dexalot leaderboard get-table-parameters` | — | Pair+dateperiod combinations available |
-| `dexalot leaderboard get-breakdown-parameters` | — | Date ranges available for breakdowns |
-| `dexalot leaderboard get-last-updates-timestamp` | — | Last leaderboard recompute time |
-| `dexalot leaderboard get-single-trader-info --traderaddress A --token T --dateperiod P` | — | One trader's reward info |
-| `dexalot leaderboard get-single-trader-breakdown --traderaddress A --token T --dateperiod P` | — | Per-pair breakdown of one trader's rewards |
-| `dexalot leaderboard get-trader-by-account --traderaddress A --token T --pair P --dateperiod P` | ✓ | Signed lookup for the connected wallet |
-| `dexalot leaderboard get-trader-subnet-incentives-info` | ✓ | Subnet incentives earned + claimable |
-| `dexalot leaderboard get-trader-breakdown-claim-info` | ✓ | Detailed breakdown for the claim wizard |
-| `dexalot leaderboard get-trader-subnet-incentives-signature` | ✓ | Backend signature for subnet-incentives claim |
-| `dexalot leaderboard get-trader-breakdown-claim-signature [--code C --redirect_uri U] [--claimedInTerms true]` | ✓ | Backend signature for breakdown claim |
-| `dexalot leaderboard get-apys --traderaddresses 0xA,0xB --dateperiod week` | — | Per-trader APY (POST) |
+| Command                                                                                                        | Auth | Description                                   |
+| -------------------------------------------------------------------------------------------------------------- | :--: | --------------------------------------------- |
+| `dexalot leaderboard get-top-traders --token T --pair P --dateperiod week\|month\|all`                         |  —   | Ranked top traders for a pair+token           |
+| `dexalot leaderboard get-table-parameters`                                                                     |  —   | Pair+dateperiod combinations available        |
+| `dexalot leaderboard get-breakdown-parameters`                                                                 |  —   | Date ranges available for breakdowns          |
+| `dexalot leaderboard get-last-updates-timestamp`                                                               |  —   | Last leaderboard recompute time               |
+| `dexalot leaderboard get-single-trader-info --traderaddress A --token T --dateperiod P`                        |  —   | One trader's reward info                      |
+| `dexalot leaderboard get-single-trader-breakdown --traderaddress A --token T --dateperiod P`                   |  —   | Per-pair breakdown of one trader's rewards    |
+| `dexalot leaderboard get-trader-by-account --traderaddress A --token T --pair P --dateperiod P`                |  ✓   | Signed lookup for the connected wallet        |
+| `dexalot leaderboard get-trader-subnet-incentives-info`                                                        |  ✓   | Subnet incentives earned + claimable          |
+| `dexalot leaderboard get-trader-breakdown-claim-info`                                                          |  ✓   | Detailed breakdown for the claim wizard       |
+| `dexalot leaderboard get-trader-subnet-incentives-signature`                                                   |  ✓   | Backend signature for subnet-incentives claim |
+| `dexalot leaderboard get-trader-breakdown-claim-signature [--code C --redirect_uri U] [--claimedInTerms true]` |  ✓   | Backend signature for breakdown claim         |
+| `dexalot leaderboard get-apys --traderaddresses 0xA,0xB --dateperiod week`                                     |  —   | Per-trader APY (POST)                         |
 
 ## Workflows
 

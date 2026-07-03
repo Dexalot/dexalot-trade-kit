@@ -1,6 +1,6 @@
 {
   "name": "@dexalot/trade-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dexalot CLI — terminal interface for the Dexalot DEX",
   "type": "module",
   "license": "MIT",

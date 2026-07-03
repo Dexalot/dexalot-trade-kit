@@ -1,20 +1,20 @@
 ---
 name: dexalot-swap
-description: "Use this skill when the user asks for: Dexalot RFQ swap pairs for a chain (Avalanche/Ethereum/Arbitrum), a swap quote (soft/indicative for price discovery or firm/executable with a maker signature and expiry), or to execute a previously-fetched firm RFQ swap on-chain. RFQ swaps execute atomically against a market maker on a single chain — different from CLOB limit orders. Soft quotes work with just a wallet address; firm quotes and execute require a configured wallet (DEXALOT_PRIVATE_KEY or profile private_key). Do NOT use for limit/market CLOB orders (dexalot-clob), cross-chain deposits or withdrawals between connected chains and the Dexalot L1 (dexalot-transfer), or portfolio balance queries (dexalot-portfolio)."
+description: 'Use this skill when the user asks for: Dexalot RFQ swap pairs for a chain (Avalanche/Ethereum/Arbitrum), a swap quote (soft/indicative for price discovery or firm/executable with a maker signature and expiry), or to execute a previously-fetched firm RFQ swap on-chain. RFQ swaps execute atomically against a market maker on a single chain — different from CLOB limit orders. Soft quotes work with just a wallet address; firm quotes and execute require a configured wallet (DEXALOT_PRIVATE_KEY or profile private_key). Do NOT use for limit/market CLOB orders (dexalot-clob), cross-chain deposits or withdrawals between connected chains and the Dexalot L1 (dexalot-transfer), or portfolio balance queries (dexalot-portfolio).'
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.1.0"
-  homepage: "https://app.dexalot.com"
+  version: '0.1.1'
+  homepage: 'https://app.dexalot.com'
   agent:
     requires:
-      bins: ["dexalot"]
+      bins: ['dexalot']
     install:
       - id: npm
         kind: node
-        package: "@dexalot/trade-cli@0.1.0"
-        bins: ["dexalot"]
-        label: "Install dexalot CLI (npm)"
+        package: '@dexalot/trade-cli@0.1.1'
+        bins: ['dexalot']
+        label: 'Install dexalot CLI (npm)'
 ---
 
 # Dexalot Swap (RFQ) CLI
@@ -22,6 +22,7 @@ metadata:
 Request-for-Quote swaps against Dexalot's market makers. Unlike CLOB orders (which sit on a per-pair order book), RFQ swaps are bilateral: a maker quotes a firm price, the taker executes against the maker's signed quote within an expiry window. Settlement is on-chain on the quoted chain (not the Dexalot L1).
 
 **Skill routing:**
+
 - RFQ swap quotes + execute → `dexalot-swap` (this skill)
 - CLOB limit/market orders → `dexalot-clob`
 - Cross-chain bridge → `dexalot-transfer`
@@ -32,12 +33,12 @@ Follow [`../_shared/preflight.md`](../_shared/preflight.md). Firm quotes and exe
 
 ## Command Index
 
-| Command | Auth | Description |
-|---|:-:|---|
-| `dexalot swap get-pairs --chainIdentifier 43114` | — | List RFQ pairs supported by the chain |
+| Command                                                                                               | Auth  | Description                                   |
+| ----------------------------------------------------------------------------------------------------- | :---: | --------------------------------------------- |
+| `dexalot swap get-pairs --chainIdentifier 43114`                                                      |   —   | List RFQ pairs supported by the chain         |
 | `dexalot swap get-quote --fromToken USDC --toToken AVAX --amount 100 [--firm true] [--chainId 43114]` | mixed | Get a quote (soft default; firm needs wallet) |
-| `dexalot swap get-firm-quote --fromToken USDC --toToken AVAX --amount 100 [--chainId 43114]` | ✓ | Convenience for firm-only |
-| `dexalot swap execute --quote '<json>' [--waitForReceipt true]` | ✓ | On-chain settlement against MainnetRFQ |
+| `dexalot swap get-firm-quote --fromToken USDC --toToken AVAX --amount 100 [--chainId 43114]`          |   ✓   | Convenience for firm-only                     |
+| `dexalot swap execute --quote '<json>' [--waitForReceipt true]`                                       |   ✓   | On-chain settlement against MainnetRFQ        |
 
 Action aliases: `pairs`, `quote`, `firm-quote`, `execute`.
 

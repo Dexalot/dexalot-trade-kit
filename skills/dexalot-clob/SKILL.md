@@ -4,17 +4,17 @@ description: "Use this skill when the user asks to: place a buy or sell order on
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.2.0"
-  homepage: "https://app.dexalot.com"
+  version: '0.2.0'
+  homepage: 'https://app.dexalot.com'
   agent:
     requires:
-      bins: ["dexalot"]
+      bins: ['dexalot']
     install:
       - id: npm
         kind: node
-        package: "@dexalot/trade-cli@0.1.0"
-        bins: ["dexalot"]
-        label: "Install dexalot CLI (npm)"
+        package: '@dexalot/trade-cli@0.1.1'
+        bins: ['dexalot']
+        label: 'Install dexalot CLI (npm)'
 ---
 
 # Dexalot CLOB CLI
@@ -36,26 +36,26 @@ When the MCP server runs with `--read-only`, `clob.write` is dropped entirely; o
 
 ## Read commands
 
-| Command | Description |
-|---|---|
-| `dexalot clob get-open-orders [--pair P] [--limit N] [--offset N]` | Open + partially-filled orders for the wallet |
-| `dexalot clob get-orders-by-account [--pair P] [--status S] [--limit N] [--offset N]` | Full order history (any status) |
-| `dexalot clob get-order --orderid 0x...` | Transaction events for one order |
-| `dexalot clob get-order-by-client-id --clientOrderId 0x...` | Look up an order by clientOrderId (on-chain read) |
+| Command                                                                               | Description                                       |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `dexalot clob get-open-orders [--pair P] [--limit N] [--offset N]`                    | Open + partially-filled orders for the wallet     |
+| `dexalot clob get-orders-by-account [--pair P] [--status S] [--limit N] [--offset N]` | Full order history (any status)                   |
+| `dexalot clob get-order --orderid 0x...`                                              | Transaction events for one order                  |
+| `dexalot clob get-order-by-client-id --clientOrderId 0x...`                           | Look up an order by clientOrderId (on-chain read) |
 
 ## Write commands
 
-| Command | Description |
-|---|---|
-| `dexalot clob place-order --pair ALOT/USDC --side BUY --amount 100 --price 0.05 [--type LIMIT\|MARKET] [--timeInForce GTC\|FOK\|IOC\|PO] [--stp CANCEL_TAKER\|CANCEL_MAKER\|CANCEL_BOTH\|CANCEL_NONE] [--waitForReceipt true]` | Single order |
-| `dexalot clob place-order-list --orders '[{...}, {...}]'` | Batch place (same-pair, atomic) |
-| `dexalot clob cancel-order --orderId 0x...` | Cancel by internal id |
-| `dexalot clob cancel-order-by-client-id --clientOrderId 0x...` | Cancel by client id |
-| `dexalot clob cancel-all-orders` | Emergency flatten |
-| `dexalot clob cancel-list-orders --orderIds id1,id2,id3` | Batch cancel by internal id |
-| `dexalot clob cancel-list-orders-by-client-id --clientOrderIds id1,id2` | Batch cancel by client id |
-| `dexalot clob replace-order --orderId 0x... --newPrice P --newAmount A` | Atomic cancel + add (single order) |
-| `dexalot clob cancel-add-list --replacements '[...]'` | Batch atomic cancel + add (ladder re-pricing) |
+| Command                                                                                                                                                                                                                        | Description                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| `dexalot clob place-order --pair ALOT/USDC --side BUY --amount 100 --price 0.05 [--type LIMIT\|MARKET] [--timeInForce GTC\|FOK\|IOC\|PO] [--stp CANCEL_TAKER\|CANCEL_MAKER\|CANCEL_BOTH\|CANCEL_NONE] [--waitForReceipt true]` | Single order                                  |
+| `dexalot clob place-order-list --orders '[{...}, {...}]'`                                                                                                                                                                      | Batch place (same-pair, atomic)               |
+| `dexalot clob cancel-order --orderId 0x...`                                                                                                                                                                                    | Cancel by internal id                         |
+| `dexalot clob cancel-order-by-client-id --clientOrderId 0x...`                                                                                                                                                                 | Cancel by client id                           |
+| `dexalot clob cancel-all-orders`                                                                                                                                                                                               | Emergency flatten                             |
+| `dexalot clob cancel-list-orders --orderIds id1,id2,id3`                                                                                                                                                                       | Batch cancel by internal id                   |
+| `dexalot clob cancel-list-orders-by-client-id --clientOrderIds id1,id2`                                                                                                                                                        | Batch cancel by client id                     |
+| `dexalot clob replace-order --orderId 0x... --newPrice P --newAmount A`                                                                                                                                                        | Atomic cancel + add (single order)            |
+| `dexalot clob cancel-add-list --replacements '[...]'`                                                                                                                                                                          | Batch atomic cancel + add (ladder re-pricing) |
 
 `--waitForReceipt true` (default) blocks until the transaction is mined. Set `false` to return as soon as the tx is broadcast.
 

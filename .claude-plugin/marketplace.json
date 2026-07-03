@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Dexalot Trade Kit — agent skills and an MCP server for the Dexalot DEX.",
-    "version": "0.1.0"
+    "version": "0.1.1"
   },
   "plugins": [
     {
       "name": "dexalot-trade",
       "source": "./",
       "description": "Dexalot DEX trading skills + MCP server: market data, CLOB orders, RFQ swaps, portfolio, transfers, analytics, leaderboards, rewards.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Dexalot",
         "url": "https://dexalot.com"
@@ -21,7 +21,14 @@
       "homepage": "https://github.com/dexalot/dexalot-trade-kit",
       "license": "MIT",
       "category": "finance",
-      "keywords": ["dexalot", "dex", "trading", "defi", "avalanche", "mcp"]
+      "keywords": [
+        "dexalot",
+        "dex",
+        "trading",
+        "defi",
+        "avalanche",
+        "mcp"
+      ]
     }
   ]
 }

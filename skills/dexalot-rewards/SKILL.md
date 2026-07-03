@@ -1,20 +1,20 @@
 ---
 name: dexalot-rewards
-description: "Use this skill when the user asks for: subnet incentives reward info or per-period breakdown claim info for the connected wallet (earned + claimable in the active epoch), the backend signature authorizing an on-chain subnet-incentives claim, or staking rewards available on Merkl (external api.merkl.xyz, no Dexalot auth) for a specific wallet address + chain id. Subnet incentives endpoints require DEXALOT_PRIVATE_KEY; Merkl rewards do not (just pass the address). Do NOT use for trader rewards leaderboard or per-pair reward breakdowns (dexalot-leaderboard), portfolio balances (dexalot-portfolio), or volume rebate tiers (dexalot-info)."
+description: 'Use this skill when the user asks for: subnet incentives reward info or per-period breakdown claim info for the connected wallet (earned + claimable in the active epoch), the backend signature authorizing an on-chain subnet-incentives claim, or staking rewards available on Merkl (external api.merkl.xyz, no Dexalot auth) for a specific wallet address + chain id. Subnet incentives endpoints require DEXALOT_PRIVATE_KEY; Merkl rewards do not (just pass the address). Do NOT use for trader rewards leaderboard or per-pair reward breakdowns (dexalot-leaderboard), portfolio balances (dexalot-portfolio), or volume rebate tiers (dexalot-info).'
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.1.0"
-  homepage: "https://app.dexalot.com"
+  version: '0.1.1'
+  homepage: 'https://app.dexalot.com'
   agent:
     requires:
-      bins: ["dexalot"]
+      bins: ['dexalot']
     install:
       - id: npm
         kind: node
-        package: "@dexalot/trade-cli@0.1.0"
-        bins: ["dexalot"]
-        label: "Install dexalot CLI (npm)"
+        package: '@dexalot/trade-cli@0.1.1'
+        bins: ['dexalot']
+        label: 'Install dexalot CLI (npm)'
 ---
 
 # Dexalot Rewards CLI
@@ -27,12 +27,12 @@ Follow [`../_shared/preflight.md`](../_shared/preflight.md). Subnet incentives e
 
 ## Command index
 
-| Command | Auth | Description |
-|---|:-:|---|
-| `dexalot rewards get-subnet-incentives-info` | ✓ | Subnet incentives earned + claimable (type=1) |
-| `dexalot rewards get-breakdown-claim-info` | ✓ | Per-period breakdown (no type filter) |
-| `dexalot rewards get-subnet-incentives-signature` | ✓ | Backend signature authorizing on-chain claim |
-| `dexalot rewards get-stake-merkl --address 0x... --chainId 43114 [--isTestnet]` | — | Merkl stake rewards (external) |
+| Command                                                                         | Auth | Description                                   |
+| ------------------------------------------------------------------------------- | :--: | --------------------------------------------- |
+| `dexalot rewards get-subnet-incentives-info`                                    |  ✓   | Subnet incentives earned + claimable (type=1) |
+| `dexalot rewards get-breakdown-claim-info`                                      |  ✓   | Per-period breakdown (no type filter)         |
+| `dexalot rewards get-subnet-incentives-signature`                               |  ✓   | Backend signature authorizing on-chain claim  |
+| `dexalot rewards get-stake-merkl --address 0x... --chainId 43114 [--isTestnet]` |  —   | Merkl stake rewards (external)                |
 
 ## Workflow
 

@@ -4,17 +4,17 @@ description: "Use this skill when the user asks for: Dexalot announcements (high
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.1.0"
-  homepage: "https://app.dexalot.com"
+  version: '0.1.1'
+  homepage: 'https://app.dexalot.com'
   agent:
     requires:
-      bins: ["dexalot"]
+      bins: ['dexalot']
     install:
       - id: npm
         kind: node
-        package: "@dexalot/trade-cli@0.1.0"
-        bins: ["dexalot"]
-        label: "Install dexalot CLI (npm)"
+        package: '@dexalot/trade-cli@0.1.1'
+        bins: ['dexalot']
+        label: 'Install dexalot CLI (npm)'
 ---
 
 # Dexalot Info CLI
@@ -22,6 +22,7 @@ metadata:
 Announcements, volume rebate tiers, and per-account rebate state. Call `info get-high-priority-announcements` at the start of any trading session.
 
 **Skill routing:**
+
 - Announcements + rebate info → `dexalot-info` (this skill)
 - Token / pair metadata → `dexalot-market`
 - Volume rankings & analytics → `dexalot-analytics`
@@ -33,12 +34,12 @@ Follow [`../_shared/preflight.md`](../_shared/preflight.md). The account-rebate 
 
 ## Command Index
 
-| Command | Auth | Description |
-|---|:-:|---|
-| `dexalot info get-high-priority-announcements` | — | Urgent banner messages (outages, freezes) |
-| `dexalot info get-announcements` | — | General announcements (releases, listings) |
-| `dexalot info get-volume-rebate-tiers` | — | Tier table: 30d volume threshold → maker/taker discount (bps) |
-| `dexalot info get-account-volume-rebate` | ✓ | Connected wallet's current tier + effective fees |
+| Command                                        | Auth | Description                                                   |
+| ---------------------------------------------- | :--: | ------------------------------------------------------------- |
+| `dexalot info get-high-priority-announcements` |  —   | Urgent banner messages (outages, freezes)                     |
+| `dexalot info get-announcements`               |  —   | General announcements (releases, listings)                    |
+| `dexalot info get-volume-rebate-tiers`         |  —   | Tier table: 30d volume threshold → maker/taker discount (bps) |
+| `dexalot info get-account-volume-rebate`       |  ✓   | Connected wallet's current tier + effective fees              |
 
 Action aliases: `urgent`, `announcements`, `rebate-tiers`, `account-rebate`.
 

@@ -1,20 +1,20 @@
 ---
 name: dexalot-portfolio
-description: "Use this skill when the user asks for: Dexalot L1 balance for a token (total/available/locked), all Dexalot L1 balances for a wallet, on-chain wallet balance on Avalanche/Ethereum/Arbitrum/Dexalot L1, all token balances on a connected chain, every balance across every connected chain, current USD prices for Dexalot-listed tokens, daily or hourly USD price history, or a signed Merkle balance proof. Most commands require a wallet (DEXALOT_PRIVATE_KEY or profile private_key); USD price queries do not. Do NOT use for placing or cancelling orders (dexalot-clob), depositing/withdrawing between chains (dexalot-transfer), RFQ swap quotes (dexalot-swap), trading-volume rankings (dexalot-analytics), or PnL across a date range (dexalot-pnl)."
+description: 'Use this skill when the user asks for: Dexalot L1 balance for a token (total/available/locked), all Dexalot L1 balances for a wallet, on-chain wallet balance on Avalanche/Ethereum/Arbitrum/Dexalot L1, all token balances on a connected chain, every balance across every connected chain, current USD prices for Dexalot-listed tokens, daily or hourly USD price history, or a signed Merkle balance proof. Most commands require a wallet (DEXALOT_PRIVATE_KEY or profile private_key); USD price queries do not. Do NOT use for placing or cancelling orders (dexalot-clob), depositing/withdrawing between chains (dexalot-transfer), RFQ swap quotes (dexalot-swap), trading-volume rankings (dexalot-analytics), or PnL across a date range (dexalot-pnl).'
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.1.0"
-  homepage: "https://app.dexalot.com"
+  version: '0.1.1'
+  homepage: 'https://app.dexalot.com'
   agent:
     requires:
-      bins: ["dexalot"]
+      bins: ['dexalot']
     install:
       - id: npm
         kind: node
-        package: "@dexalot/trade-cli@0.1.0"
-        bins: ["dexalot"]
-        label: "Install dexalot CLI (npm)"
+        package: '@dexalot/trade-cli@0.1.1'
+        bins: ['dexalot']
+        label: 'Install dexalot CLI (npm)'
 ---
 
 # Dexalot Portfolio CLI
@@ -22,6 +22,7 @@ metadata:
 Wallet balance queries across the Dexalot L1 and every connected chain, plus USD pricing and balance proofs.
 
 **Skill routing:**
+
 - Balances & pricing → `dexalot-portfolio` (this skill)
 - Deposits / withdrawals → `dexalot-transfer`
 - Place / cancel orders → `dexalot-clob`
@@ -34,17 +35,17 @@ Follow [`../_shared/preflight.md`](../_shared/preflight.md). Confirm a profile w
 
 ## Command Index
 
-| Command | Auth | Description |
-|---|:-:|---|
-| `dexalot portfolio get-balance --token T [--address A]` | ✓ | Dexalot L1 balance for one token (total / available / locked) |
-| `dexalot portfolio get-all-balances [--address A]` | ✓ | Every Dexalot L1 balance for the wallet |
-| `dexalot portfolio get-chain-balance --chain C --token T [--address A]` | ✓ | One token on one connected chain |
-| `dexalot portfolio get-chain-balances --chain C [--address A]` | ✓ | Every token on one connected chain |
-| `dexalot portfolio get-all-chain-balances [--address A]` | ✓ | Every token across every connected chain (slow — cache the result) |
-| `dexalot portfolio get-token-usd-prices` | — | Current USD prices for every Dexalot-listed token |
-| `dexalot portfolio get-token-usd-price-history --token T` | — | Daily USD price history for one token |
-| `dexalot portfolio get-token-hourly-usd-price-history --token T` | — | Hourly USD price history for one token (last 7 days) |
-| `dexalot portfolio get-balance-proof --symbol T [--traderaddress A]` | ✓ | Signed Merkle proof of Dexalot L1 balance |
+| Command                                                                 | Auth | Description                                                        |
+| ----------------------------------------------------------------------- | :--: | ------------------------------------------------------------------ |
+| `dexalot portfolio get-balance --token T [--address A]`                 |  ✓   | Dexalot L1 balance for one token (total / available / locked)      |
+| `dexalot portfolio get-all-balances [--address A]`                      |  ✓   | Every Dexalot L1 balance for the wallet                            |
+| `dexalot portfolio get-chain-balance --chain C --token T [--address A]` |  ✓   | One token on one connected chain                                   |
+| `dexalot portfolio get-chain-balances --chain C [--address A]`          |  ✓   | Every token on one connected chain                                 |
+| `dexalot portfolio get-all-chain-balances [--address A]`                |  ✓   | Every token across every connected chain (slow — cache the result) |
+| `dexalot portfolio get-token-usd-prices`                                |  —   | Current USD prices for every Dexalot-listed token                  |
+| `dexalot portfolio get-token-usd-price-history --token T`               |  —   | Daily USD price history for one token                              |
+| `dexalot portfolio get-token-hourly-usd-price-history --token T`        |  —   | Hourly USD price history for one token (last 7 days)               |
+| `dexalot portfolio get-balance-proof --symbol T [--traderaddress A]`    |  ✓   | Signed Merkle proof of Dexalot L1 balance                          |
 
 Action aliases: `balances`, `usd-prices`, `usd-price-history`, `hourly-usd-price-history`, `balance-proof`.
 
@@ -52,14 +53,14 @@ Action aliases: `balances`, `usd-prices`, `usd-price-history`, `hourly-usd-price
 
 The `--chain` parameter for `get-chain-balance` / `get-chain-balances` accepts the Dexalot-internal chain name, which **differs between mainnet and testnet**. Use `market get-environments` to list the active network's chain names, or refer to this table:
 
-| Logical chain | mainnet | testnet / devnet |
-|---|---|---|
-| Avalanche C-Chain | `Avalanche` | `Fuji` |
-| Ethereum L1 | `Ethereum` | `Ethereum Sepolia` |
-| Arbitrum | `Arbitrum` | `Arbitrum Sepolia` |
-| Base | `Base` | `Base Sepolia` |
-| BSC | `BSC` | `BSC Testnet` |
-| Dexalot L1 | `Dexalot L1` | `Dexalot L1` |
+| Logical chain     | mainnet      | testnet / devnet   |
+| ----------------- | ------------ | ------------------ |
+| Avalanche C-Chain | `Avalanche`  | `Fuji`             |
+| Ethereum L1       | `Ethereum`   | `Ethereum Sepolia` |
+| Arbitrum          | `Arbitrum`   | `Arbitrum Sepolia` |
+| Base              | `Base`       | `Base Sepolia`     |
+| BSC               | `BSC`        | `BSC Testnet`      |
+| Dexalot L1        | `Dexalot L1` | `Dexalot L1`       |
 
 If you pass an unknown chain name the error message lists the connected chains for the active network.
 

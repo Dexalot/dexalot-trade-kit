@@ -4,17 +4,17 @@ description: "Use this skill when the user asks to: deposit tokens from a connec
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: "0.1.0"
-  homepage: "https://app.dexalot.com"
+  version: '0.1.1'
+  homepage: 'https://app.dexalot.com'
   agent:
     requires:
-      bins: ["dexalot"]
+      bins: ['dexalot']
     install:
       - id: npm
         kind: node
-        package: "@dexalot/trade-cli@0.1.0"
-        bins: ["dexalot"]
-        label: "Install dexalot CLI (npm)"
+        package: '@dexalot/trade-cli@0.1.1'
+        bins: ['dexalot']
+        label: 'Install dexalot CLI (npm)'
 ---
 
 # Dexalot Transfer CLI
@@ -22,6 +22,7 @@ metadata:
 Cross-chain deposits and withdrawals between the Dexalot L1 and connected source chains, plus gas management and P2P portfolio transfers.
 
 **Skill routing:**
+
 - Bridging + gas + P2P → `dexalot-transfer` (this skill)
 - Balance queries → `dexalot-portfolio`
 - CLOB trading → `dexalot-clob`
@@ -31,14 +32,14 @@ Cross-chain deposits and withdrawals between the Dexalot L1 and connected source
 
 `sourceChain` / `destinationChain` accept the Dexalot-internal chain name. **Names differ between mainnet and testnet** — run `dexalot market get-environments` to list the active set. Common mappings:
 
-| Logical chain | mainnet | testnet / devnet |
-|---|---|---|
-| Avalanche C-Chain | `Avalanche` | `Fuji` |
-| Ethereum L1 | `Ethereum` | `Ethereum Sepolia` |
-| Arbitrum | `Arbitrum` | `Arbitrum Sepolia` |
-| Base | `Base` | `Base Sepolia` |
-| BSC | `BSC` | `BSC Testnet` |
-| Dexalot L1 | `Dexalot L1` | `Dexalot L1` |
+| Logical chain     | mainnet      | testnet / devnet   |
+| ----------------- | ------------ | ------------------ |
+| Avalanche C-Chain | `Avalanche`  | `Fuji`             |
+| Ethereum L1       | `Ethereum`   | `Ethereum Sepolia` |
+| Arbitrum          | `Arbitrum`   | `Arbitrum Sepolia` |
+| Base              | `Base`       | `Base Sepolia`     |
+| BSC               | `BSC`        | `BSC Testnet`      |
+| Dexalot L1        | `Dexalot L1` | `Dexalot L1`       |
 
 If you pass an unknown chain name the error lists the connected set.
 
@@ -48,16 +49,16 @@ Follow [`../_shared/preflight.md`](../_shared/preflight.md). All writes need a w
 
 ## Command Index
 
-| Command | Auth | Description |
-|---|:-:|---|
-| `dexalot transfer deposit --token T --amount A --sourceChain C [--useLayerZero] [--waitForReceipt]` | ✓ | Bridge token from source chain to Dexalot L1 |
-| `dexalot transfer withdraw --token T --amount A --destinationChain C [--useLayerZero]` | ✓ | Bridge token from Dexalot L1 to destination chain |
-| `dexalot transfer add-gas --amount N` | ✓ | Withdraw native ALOT from portfolio to wallet (gas) |
-| `dexalot transfer remove-gas --amount N` | ✓ | Deposit native ALOT from wallet to portfolio |
-| `dexalot transfer portfolio --token T --amount A --toAddress 0x...` | ✓ | P2P transfer on Dexalot L1 |
-| `dexalot transfer get-deposit-bridge-fee --token T --amount A --sourceChain C` | ✓ | Estimate bridge cost in native asset |
-| `dexalot transfer get-token-details --token T` | — | Per-chain contract addresses + decimals |
-| `dexalot transfer get-combined-transfers [--symbol T] [--fromTs UNIX_SECONDS] [--toTs UNIX_SECONDS] [--limit N] [--offset N]` | ✓ | History (canonical Transfer rows; `--fromTs`/`--toTs` are unix timestamps in seconds; legacy `--type`/`--status` flags are accepted but ignored — the backend never honored them) |
+| Command                                                                                                                       | Auth | Description                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------- | :--: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dexalot transfer deposit --token T --amount A --sourceChain C [--useLayerZero] [--waitForReceipt]`                           |  ✓   | Bridge token from source chain to Dexalot L1                                                                                                                                      |
+| `dexalot transfer withdraw --token T --amount A --destinationChain C [--useLayerZero]`                                        |  ✓   | Bridge token from Dexalot L1 to destination chain                                                                                                                                 |
+| `dexalot transfer add-gas --amount N`                                                                                         |  ✓   | Withdraw native ALOT from portfolio to wallet (gas)                                                                                                                               |
+| `dexalot transfer remove-gas --amount N`                                                                                      |  ✓   | Deposit native ALOT from wallet to portfolio                                                                                                                                      |
+| `dexalot transfer portfolio --token T --amount A --toAddress 0x...`                                                           |  ✓   | P2P transfer on Dexalot L1                                                                                                                                                        |
+| `dexalot transfer get-deposit-bridge-fee --token T --amount A --sourceChain C`                                                |  ✓   | Estimate bridge cost in native asset                                                                                                                                              |
+| `dexalot transfer get-token-details --token T`                                                                                |  —   | Per-chain contract addresses + decimals                                                                                                                                           |
+| `dexalot transfer get-combined-transfers [--symbol T] [--fromTs UNIX_SECONDS] [--toTs UNIX_SECONDS] [--limit N] [--offset N]` |  ✓   | History (canonical Transfer rows; `--fromTs`/`--toTs` are unix timestamps in seconds; legacy `--type`/`--status` flags are accepted but ignored — the backend never honored them) |
 
 ## Typical workflows
 
