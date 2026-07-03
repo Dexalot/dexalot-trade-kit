@@ -4,6 +4,13 @@
   "description": "Dexalot MCP Server — Model Context Protocol server for the Dexalot DEX",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dexalot/dexalot-trade-kit.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/Dexalot/dexalot-trade-kit#readme",
+  "bugs": "https://github.com/Dexalot/dexalot-trade-kit/issues",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
