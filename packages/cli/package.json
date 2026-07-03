@@ -4,6 +4,13 @@
   "description": "Dexalot CLI — terminal interface for the Dexalot DEX",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dexalot/dexalot-trade-kit.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/Dexalot/dexalot-trade-kit#readme",
+  "bugs": "https://github.com/Dexalot/dexalot-trade-kit/issues",
   "main": "dist/index.js",
   "bin": {
     "dexalot": "dist/index.js"

@@ -1,51 +1,97 @@
 name: CI
 
 on:
-  push:
-    branches: ["**"]
   pull_request:
-    branches: [main, master]
+  push:
+    branches: [main]
+  schedule:
+    # Weekly Monday 12:00 UTC. Catches dependency drift and new CVEs
+    # against an otherwise quiet main.
+    - cron: "0 12 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # ── Unit tests + typecheck on every branch ───────────────────────────────
-  unit-test:
-    name: Unit Test / Node ${{ matrix.node-version }}
+  # ── Build + typecheck + unit tests + security gates ──────────────────────
+  quality:
+    name: Quality (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node-version: ["20.x", "22.x"]
+        node: ["20.x", "22.x", "24.x"]
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 9
-      - uses: actions/setup-node@v4
+
+      - name: Set up Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-      - run: pnpm typecheck
-      - run: pnpm test:unit
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (core → mcp → cli)
+        run: pnpm build
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: pnpm audit (high+ severity gate)
+        run: pnpm audit --audit-level=high
+
+      - name: OSV scanner
+        # Cross-checks pnpm-lock.yaml against the OSV CVE database; this
+        # catches advisories that have not yet propagated to npm's feed.
+        uses: google/osv-scanner-action/osv-scanner-action@v2.1.0
+        with:
+          scan-args: |
+            --lockfile=pnpm-lock.yaml
 
   # ── Devnet smoke (main only, read-only, no wallet) ───────────────────────
   smoke-test:
     name: Smoke Test (devnet, --read-only)
     runs-on: ubuntu-latest
-    needs: unit-test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: quality
+    if: github.ref == 'refs/heads/main'
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 9
-      - uses: actions/setup-node@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: "22.x"
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
       - name: Read-only smoke against devnet
         run: bash test/smoke.sh
