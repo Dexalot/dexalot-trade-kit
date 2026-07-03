@@ -1,9 +1,9 @@
-name: Publish to NPM
+name: Publish CLI to NPM
 
 on:
   push:
     tags:
-      - "v*"
+      - "trade-cli-v*"
 
 permissions:
   id-token: write # npm provenance
@@ -11,11 +11,11 @@ permissions:
 
 jobs:
   publish:
-    name: Build and publish packages
+    name: Build and publish @dexalot/trade-cli
     runs-on: ubuntu-latest
     environment:
       name: npm
-      url: https://www.npmjs.com/org/dexalot
+      url: https://www.npmjs.com/package/@dexalot/trade-cli
 
     steps:
       - name: Check out repository
@@ -26,7 +26,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -53,31 +53,26 @@ jobs:
             exit 1
           fi
 
-      - name: Validate tag matches package versions
+      - name: Validate tag matches @dexalot/trade-cli version
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           node - <<'JS'
           const fs = require("node:fs");
           const tag = process.env.GITHUB_REF_NAME;
-          const expected = tag.replace(/^v/, "");
-          const pkgs = ["packages/mcp/package.json", "packages/cli/package.json"];
-          for (const p of pkgs) {
-            const { name, version } = JSON.parse(fs.readFileSync(p, "utf8"));
-            if (version !== expected) {
-              throw new Error(
-                `Refusing to publish: ${name} version ${JSON.stringify(version)} does not match tag ${JSON.stringify(tag)} (expected ${JSON.stringify(expected)})`
-              );
-            }
-            console.log(`OK: ${name}@${version} matches ${tag}`);
+          const expected = tag.replace(/^trade-cli-v/, "");
+          const { name, version } = JSON.parse(fs.readFileSync("packages/cli/package.json", "utf8"));
+          if (version !== expected) {
+            throw new Error(
+              `Refusing to publish: ${name} version ${JSON.stringify(version)} does not match tag ${JSON.stringify(tag)} (expected trade-cli-v${version})`
+            );
           }
+          console.log(`OK: ${name}@${version} matches ${tag}`);
           JS
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Pre-publish CVE gates: refuse to ship a tag that introduces
-      # known high-severity advisories.
       - name: pnpm audit (high+ severity gate)
         run: pnpm audit --audit-level=high
 
@@ -97,13 +92,10 @@ jobs:
         run: pnpm build
 
       - name: Validate package contents (dry run)
-        run: pnpm -r publish --no-git-checks --dry-run
+        run: pnpm --filter @dexalot/trade-cli publish --no-git-checks --dry-run
 
-      - name: Publish to NPM
-        # `pnpm -r publish` publishes every non-private workspace package
-        # (i.e. @dexalot/trade-mcp + @dexalot/trade-cli) and skips the
-        # private @dexalot/trade-core, which is bundled into both.
+      - name: Publish @dexalot/trade-cli to NPM
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
-        run: pnpm -r publish --access public --no-git-checks
+        run: pnpm --filter @dexalot/trade-cli publish --access public --no-git-checks
