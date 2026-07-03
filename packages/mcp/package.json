@@ -46,7 +46,7 @@
     "ethers": "^6.16.0",
     "qrcode": "^1.5.4",
     "smol-toml": "^1.3.4",
-    "undici": "^6.0.0"
+    "undici": "^6.27.0"
   },
   "devDependencies": {
     "@dexalot/trade-core": "workspace:*",
