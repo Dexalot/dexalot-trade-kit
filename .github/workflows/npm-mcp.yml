@@ -1,0 +1,101 @@
+name: Publish MCP to NPM
+
+on:
+  push:
+    tags:
+      - "trade-mcp-v*"
+
+permissions:
+  id-token: write # npm provenance
+  contents: read
+
+jobs:
+  publish:
+    name: Build and publish @dexalot/trade-mcp
+    runs-on: ubuntu-latest
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@dexalot/trade-mcp
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Ensure workflow runs from a version tag
+        env:
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            echo "Refusing to publish: workflow must run from a git tag, got $GITHUB_REF_TYPE:$GITHUB_REF_NAME"
+            exit 1
+          fi
+
+      - name: Ensure tag commit is on main
+        run: |
+          git fetch origin main --depth=1
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "Refusing to publish: tagged commit $GITHUB_SHA is not reachable from origin/main"
+            exit 1
+          fi
+
+      - name: Validate tag matches @dexalot/trade-mcp version
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          node - <<'JS'
+          const fs = require("node:fs");
+          const tag = process.env.GITHUB_REF_NAME;
+          const expected = tag.replace(/^trade-mcp-v/, "");
+          const { name, version } = JSON.parse(fs.readFileSync("packages/mcp/package.json", "utf8"));
+          if (version !== expected) {
+            throw new Error(
+              `Refusing to publish: ${name} version ${JSON.stringify(version)} does not match tag ${JSON.stringify(tag)} (expected trade-mcp-v${version})`
+            );
+          }
+          console.log(`OK: ${name}@${version} matches ${tag}`);
+          JS
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm audit (high+ severity gate)
+        run: pnpm audit --audit-level=high
+
+      - name: OSV scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v2.1.0
+        with:
+          scan-args: |
+            --lockfile=pnpm-lock.yaml
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Build distributions
+        run: pnpm build
+
+      - name: Validate package contents (dry run)
+        run: pnpm --filter @dexalot/trade-mcp publish --no-git-checks --dry-run
+
+      - name: Publish @dexalot/trade-mcp to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
+        run: pnpm --filter @dexalot/trade-mcp publish --access public --no-git-checks
