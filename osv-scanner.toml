@@ -1,0 +1,13 @@
+# OSV-Scanner ignore list — reviewed exceptions to the CI security gate.
+# Only low-severity, non-shipping (dev/build-only) advisories belong here,
+# each with a documented reason. High-severity advisories must be fixed, not
+# ignored (see the pnpm.overrides in package.json).
+
+[[IgnoredVulns]]
+id = "GHSA-g7r4-m6w7-qqqr"
+# esbuild dev-server CORS reflection (CVSS 2.5, low). esbuild is a transitive
+# dev dependency of tsup (the bundler) and is never shipped — the published
+# packages are pre-bundled dist. The advisory only affects `esbuild serve`
+# (its dev server), which this project does not use. Revisit if esbuild ever
+# becomes a runtime dependency.
+reason = "esbuild dev-server CORS (low, CVSS 2.5); dev-only build tool via tsup, never shipped."
