@@ -25,12 +25,15 @@ const SKILLS_DIR = join(REPO_ROOT, "skills");
 const MAX_DESCRIPTION_LENGTH = 1024;
 
 // Extract the value of the description key from YAML frontmatter.
-// Handles both double-quoted strings and unquoted single-line values.
+// Handles double-quoted, single-quoted, and unquoted single-line values.
 // Returns null if the pattern is not found.
 function extractDescription(content: string): string | null {
   // Match double-quoted: description: "..."
   const mQuoted = content.match(/^description:\s+"((?:[^"\\]|\\.)*)"/m);
   if (mQuoted) return mQuoted[1];
+  // Match single-quoted: description: '...' (YAML escapes an inner quote as '')
+  const mSingle = content.match(/^description:\s+'((?:[^']|'')*)'/m);
+  if (mSingle) return mSingle[1].replace(/''/g, "'");
   // Match unquoted: description: some text (up to end of line)
   const mUnquoted = content.match(/^description:\s+([^"'\n][^\n]*)/m);
   return mUnquoted ? mUnquoted[1].trimEnd() : null;
