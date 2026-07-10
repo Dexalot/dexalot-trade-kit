@@ -226,11 +226,11 @@ description: 'Use this skill when the user asks for: …  Do NOT use for: … (�
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: '0.1.1'
+  version: '0.1.2'
   agent:
     requires:
       bins: ['dexalot']
-    install: [{ id: npm, kind: node, package: '@dexalot/trade-cli@0.1.1', bins: ['dexalot'] }]
+    install: [{ id: npm, kind: node, package: '@dexalot/trade-cli@0.1.2', bins: ['dexalot'] }]
 ---
 ```
 
