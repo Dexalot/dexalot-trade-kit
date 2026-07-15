@@ -1,7 +1,7 @@
 {
   "name": "dexalot-trade",
   "description": "Dexalot DEX trading skills + MCP server: market data, CLOB orders, RFQ swaps, portfolio balances, cross-chain transfers, analytics, leaderboards, and rewards. The 12 skills drive the `dexalot` CLI; the bundled MCP server exposes the same tool registry to MCP hosts.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Dexalot",
     "url": "https://dexalot.com"

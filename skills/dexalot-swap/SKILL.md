@@ -4,7 +4,7 @@ description: 'Use this skill when the user asks for: Dexalot RFQ swap pairs for 
 license: MIT
 metadata:
   author: dexalot-trade-kit
-  version: '0.1.1'
+  version: '0.1.2'
   homepage: 'https://app.dexalot.com'
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: '@dexalot/trade-cli@0.1.1'
+        package: '@dexalot/trade-cli@0.1.2'
         bins: ['dexalot']
         label: 'Install dexalot CLI (npm)'
 ---
